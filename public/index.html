@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SME Vote - ระบบเลือกตั้งกรรมการนักเรียน</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&family=Sarabun:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Kanit', 'Sarabun', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body {
+            font-family: 'Kanit', 'Sarabun', sans-serif;
+            background: linear-gradient(135deg, #EEF2F6 0%, #E2E8F0 100%);
+            min-height: 100vh;
+        }
+        .glass-card {
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.4);
+        }
+    </style>
+</head>
+<body class="text-slate-800 antialiased py-6 px-4">
+
+    <div class="max-w-md mx-auto">
+        <!-- Header -->
+        <header class="text-center mb-6">
+            <div class="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-indigo-600 text-white shadow-lg shadow-indigo-200 mb-3">
+                <i class="fa-solid fa-square-poll-vertical text-3xl"></i>
+            </div>
+            <h1 class="text-2xl font-bold text-slate-900 tracking-tight">SME Vote</h1>
+            <p class="text-slate-500 text-sm mt-1">ระบบลงคะแนนเลือกตั้งกรรมการนักเรียนแบบอิเล็กทรอนิกส์</p>
+        </header>
+
+        <!-- 1. LOADING SCREEN -->
+        <div id="screen-loading" class="glass-card rounded-3xl p-8 shadow-xl text-center">
+            <div class="animate-spin text-indigo-600 text-4xl mb-4">
+                <i class="fa-solid fa-spinner-third"></i> <!-- Fallback standard spin icon -->
+                <i class="fa-solid fa-circle-notch animate-spin"></i>
+            </div>
+            <p class="text-slate-600 font-medium">กำลังเตรียมการระบบเลือกตั้ง...</p>
+        </div>
+
+        <!-- 2. LOGIN / MOCK PROFILE SCREEN (FOR WEB TESTING OUTSIDE LINE) -->
+        <div id="screen-mock" class="hidden glass-card rounded-3xl p-6 shadow-xl mb-6 border-amber-300 border-2">
+            <div class="flex items-center space-x-2 text-amber-700 mb-3">
+                <i class="fa-solid fa-triangle-exclamation"></i>
+                <h3 class="font-bold">โหมดจำลองระบบ LINE LIFF</h3>
+            </div>
+            <p class="text-xs text-slate-500 mb-4">หากเปิดหน้าเว็บนี้นอกแอปพลิเคชัน LINE (เช่นเปิดบนคอมฯ) คุณสามารถสวมสิทธิ์เพื่อจำลองการทำรายการได้</p>
+            <div class="space-y-3">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">LINE ID จำลอง</label>
+                    <input type="text" id="mock-line-id" value="user_line_111" class="w-full px-3 py-2 border rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">ชื่อโปรไฟล์จำลอง</label>
+                    <input type="text" id="mock-line-name" value="สมศักดิ์ แฟนคลับ" class="w-full px-3 py-2 border rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm">
+                </div>
+                <button onclick="useMockProfile()" class="w-full py-2 bg-amber-500 hover:bg-amber-600 text-white font-medium rounded-xl text-sm transition shadow-sm">
+                    ยืนยันการใช้โปรไฟล์จำลอง
+                </button>
+            </div>
+        </div>
+
+        <!-- 3. STUDENT REGISTRATION SCREEN -->
+        <div id="screen-register" class="hidden glass-card rounded-3xl p-8 shadow-xl">
+            <div class="text-center mb-6">
+                <div class="w-12 h-12 bg-indigo-50 text-indigo-600 rounded-full flex items-center justify-center mx-auto mb-3">
+                    <i class="fa-solid fa-address-card text-xl"></i>
+                </div>
+                <h2 class="text-lg font-bold text-slate-900">ตรวจสอบและผูกสิทธิ์เข้าใช้งาน</h2>
+                <p class="text-xs text-slate-500 mt-1">กรุณากรอกรหัสนักเรียนเพื่อตรวจสอบความสอดคล้องของสิทธิ์</p>
+            </div>
+
+            <!-- Profile Info fetched from LINE -->
+            <div id="line-profile-box" class="flex items-center space-x-3 p-3 bg-indigo-50/50 rounded-2xl mb-6">
+                <img id="line-avatar" src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=100&q=80" alt="Avatar" class="w-10 h-10 rounded-full object-cover">
+                <div>
+                    <p class="text-xs text-indigo-500 font-semibold">บัญชี LINE ที่เชื่อมต่อ</p>
+                    <p id="line-display-name" class="text-sm font-bold text-slate-800">กำลังดึงข้อมูล...</p>
+                </div>
+            </div>
+
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">รหัสนักเรียน</label>
+                    <input type="text" id="input-student-id" placeholder="ตัวอย่าง: 65001" class="w-full px-4 py-3 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 font-medium tracking-wider">
+                </div>
+                
+                <button onclick="registerStudent()" class="w-full py-3.5 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-xl transition duration-200 shadow-md shadow-indigo-100 flex items-center justify-center space-x-2">
+                    <span>ตรวจสอบสิทธิ์และเชื่อมต่อ</span>
+                    <i class="fa-solid fa-arrow-right"></i>
+                </button>
+            </div>
+            
+            <div id="register-error" class="hidden mt-4 p-3 bg-rose-50 border border-rose-100 text-rose-600 rounded-xl text-xs flex items-start space-x-2">
+                <i class="fa-solid fa-circle-exclamation mt-0.5"></i>
+                <span id="register-error-text">เกิดข้อผิดพลาดในการตรวจสอบ</span>
+            </div>
+        </div>
+
+        <!-- 4. VOTING SCREEN -->
+        <div id="screen-voting" class="hidden">
+            <!-- Student Header Info -->
+            <div class="glass-card rounded-2xl p-4 mb-4 flex justify-between items-center shadow-md">
+                <div>
+                    <p class="text-xs text-slate-400">ผู้ลงคะแนน</p>
+                    <p id="voter-name-title" class="font-bold text-slate-800">นักเรียน...</p>
+                </div>
+                <div class="bg-emerald-50 text-emerald-700 px-3 py-1 rounded-full text-xs font-bold flex items-center space-x-1">
+                    <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                    <span>มีสิทธิ์โหวต</span>
+                </div>
+            </div>
+
+            <div class="mb-4">
+                <h2 class="text-base font-bold text-slate-900 mb-1 flex items-center space-x-2">
+                    <i class="fa-solid fa-person-booth text-indigo-600"></i>
+                    <span>บัตรเลือกตั้งกรรมการนักเรียน</span>
+                </h2>
+                <p class="text-xs text-slate-500">กรุณาเลือกผู้สมัครที่ท่านต้องการเพียง 1 รายชื่อเท่านั้น หรือระบุไม่ประสงค์ลงคะแนน</p>
+            </div>
+
+            <!-- Candidates Grid -->
+            <div id="candidates-container" class="space-y-4">
+                <!-- Dynamically populated from JS -->
+            </div>
+
+            <!-- No Vote Option Card -->
+            <div class="mt-6">
+                <button onclick="confirmVote(null)" class="w-full glass-card hover:bg-slate-50 border-2 border-dashed border-slate-300 hover:border-indigo-400 p-5 rounded-2xl transition duration-200 flex items-center justify-between text-left group shadow-sm">
+                    <div class="flex items-center space-x-4">
+                        <div class="w-12 h-12 bg-slate-100 group-hover:bg-indigo-50 text-slate-400 group-hover:text-indigo-500 rounded-xl flex items-center justify-center transition">
+                            <i class="fa-solid fa-ban text-xl"></i>
+                        </div>
+                        <div>
+                            <h4 class="font-bold text-slate-800 group-hover:text-indigo-600 transition">ไม่ประสงค์ลงคะแนน</h4>
+                            <p class="text-xs text-slate-500">ทำการโหวตโดยผ่านกระบวนการไม่เลือกใคร</p>
+                        </div>
+                    </div>
+                    <i class="fa-solid fa-chevron-right text-slate-400 group-hover:text-indigo-600 transition"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- 5. SUCCESS SCREEN -->
+        <div id="screen-success" class="hidden glass-card rounded-3xl p-8 shadow-xl text-center border-t-4 border-emerald-500">
+            <div class="w-20 h-20 bg-emerald-50 text-emerald-500 rounded-full flex items-center justify-center mx-auto mb-6 shadow-inner">
+                <i class="fa-solid fa-circle-check text-4xl animate-bounce"></i>
+            </div>
+            <h2 class="text-xl font-bold text-slate-900 mb-2">ส่งคะแนนสำเร็จ!</h2>
+            <p class="text-slate-600 text-sm mb-6">ระบบได้บันทึกคะแนนโหวตของคุณเรียบร้อยแล้ว สิทธิ์การเข้าโหวตของบัญชีคุณถูกล็อคตามระเบียบ</p>
+            <div class="bg-indigo-50/50 rounded-2xl p-4 text-xs text-indigo-700 mb-6 text-left space-y-1">
+                <div class="flex justify-between">
+                    <span class="font-medium">ประเภทธุรกรรม:</span>
+                    <span>บันทึกคะแนนโหวต (Anonymous)</span>
+                </div>
+                <div class="flex justify-between">
+                    <span class="font-medium">ระบบยืนยันตัวตน:</span>
+                    <span>LINE LIFF Secured</span>
+                </div>
+            </div>
+            <p class="text-xs text-slate-400">คุณสามารถปิดหน้านี้เพื่อกลับไปยังห้องแชท LINE ได้ทันที</p>
+        </div>
+    </div>
+
+    <!-- 6. VOTE CONFIRMATION MODAL -->
+    <div id="confirm-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white rounded-3xl w-full max-w-sm p-6 shadow-2xl scale-95 transition-all duration-300">
+            <div class="text-center mb-5">
+                <div id="confirm-avatar-box" class="w-20 h-20 rounded-full overflow-hidden mx-auto mb-4 bg-indigo-50 border-4 border-indigo-100 flex items-center justify-center">
+                    <i id="confirm-no-vote-icon" class="fa-solid fa-ban text-3xl text-slate-400 hidden"></i>
+                    <img id="confirm-avatar" src="" alt="Candidate Photo" class="w-full h-full object-cover">
+                </div>
+                <p id="confirm-badge" class="inline-block bg-indigo-600 text-white text-xs font-bold px-3 py-1 rounded-full mb-2">เบอร์...</p>
+                <h3 class="text-lg font-bold text-slate-900">ยืนยันการส่งคะแนนโหวต</h3>
+                <p id="confirm-policy" class="text-xs text-slate-500 px-4 mt-2 italic">นโยบาย: ...</p>
+                <div class="mt-4 p-3 bg-amber-50 border border-amber-100 rounded-xl text-amber-700 text-xs text-left flex items-start space-x-2">
+                    <i class="fa-solid fa-circle-info mt-0.5 flex-shrink-0"></i>
+                    <span>การลงคะแนนจะไม่สามารถแก้ไขหรือโหวตใหม่ได้หลังจากกดปุ่มส่งข้อมูลนี้</span>
+                </div>
+            </div>
+            <div class="grid grid-cols-2 gap-3">
+                <button onclick="closeModal()" class="py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold rounded-xl text-sm transition">
+                    ยกเลิก
+                </button>
+                <button id="btn-submit-vote" class="py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-xl text-sm transition flex items-center justify-center space-x-1 shadow-md shadow-indigo-100">
+                    <span>ส่งคะแนนโหวต</span>
+                    <i class="fa-solid fa-paper-plane"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- LINE LIFF SDK -->
+    <script charset="utf-8" src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SME Vote - แผงควบคุมผู้ดูแลระบบ (Admin Dashboard)</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&family=Sarabun:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Kanit', 'Sarabun', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Chart.js CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body {
+            font-family: 'Kanit', 'Sarabun', sans-serif;
+            background: linear-gradient(135deg, #F8FAFC 0%, #F1F5F9 100%);
+            min-height: 100vh;
+        }
+        .glass-card {
+            background: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(226, 232, 240, 0.8);
+        }
+    </style>
+</head>
+<body class="text-slate-800 antialiased p-6">
+
+    <div class="max-w-6xl mx-auto">
+        <!-- Top Navigation / Header -->
+        <header class="flex flex-col md:flex-row md:items-center md:justify-between mb-8 pb-6 border-b border-slate-200">
+            <div class="mb-4 md:mb-0">
+                <div class="flex items-center space-x-3">
+                    <div class="w-12 h-12 bg-indigo-600 text-white rounded-2xl flex items-center justify-center shadow-lg shadow-indigo-100">
+                        <i class="fa-solid fa-chart-line text-2xl"></i>
+                    </div>
+                    <div>
+                        <h1 class="text-xl font-bold text-slate-900">แผงควบคุมผลการเลือกตั้ง Real-time</h1>
+                        <p class="text-slate-500 text-xs mt-0.5">ระบบจัดการและติดตามคะแนนเสียง SME Vote</p>
+                    </div>
+                </div>
+            </div>
+            <!-- Seeding Controls & Status Badge -->
+            <div class="flex flex-wrap items-center gap-3">
+                <div class="bg-indigo-50 text-indigo-700 px-3 py-1.5 rounded-xl text-xs font-bold flex items-center space-x-1.5">
+                    <span class="w-2.5 h-2.5 rounded-full bg-indigo-600 animate-pulse"></span>
+                    <span>ระบบเชื่อมต่อและดึงข้อมูลอัปเดตอัตโนมัติ (5s)</span>
+                </div>
+                <button onclick="triggerSeedData()" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs rounded-xl shadow-md transition duration-200 flex items-center space-x-1.5">
+                    <i class="fa-solid fa-database"></i>
+                    <span>จำลองระบบและรีเซ็ตข้อมูล (Seed Data)</span>
+                </button>
+            </div>
+        </header>
+
+        <!-- Metrics Row -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            <!-- Metric 1: Total Eligible -->
+            <div class="glass-card rounded-2xl p-5 shadow-sm flex items-center justify-between">
+                <div>
+                    <p class="text-xs font-medium text-slate-400">ผู้มีสิทธิ์เลือกตั้งทั้งหมด</p>
+                    <h3 id="stat-total-eligible" class="text-2xl font-bold text-slate-800 mt-1">0 คน</h3>
+                </div>
+                <div class="w-12 h-12 bg-indigo-50 text-indigo-500 rounded-xl flex items-center justify-center text-lg">
+                    <i class="fa-solid fa-users"></i>
+                </div>
+            </div>
+            <!-- Metric 2: Total Voted -->
+            <div class="glass-card rounded-2xl p-5 shadow-sm flex items-center justify-between">
+                <div>
+                    <p class="text-xs font-medium text-slate-400">ผู้ใช้สิทธิ์ลงคะแนนแล้ว</p>
+                    <h3 id="stat-total-voted" class="text-2xl font-bold text-slate-800 mt-1">0 คน</h3>
+                </div>
+                <div class="w-12 h-12 bg-emerald-50 text-emerald-500 rounded-xl flex items-center justify-center text-lg">
+                    <i class="fa-solid fa-check-double"></i>
+                </div>
+            </div>
+            <!-- Metric 3: Total Not Voted -->
+            <div class="glass-card rounded-2xl p-5 shadow-sm flex items-center justify-between">
+                <div>
+                    <p class="text-xs font-medium text-slate-400">ยังไม่มาใช้สิทธิ์</p>
+                    <h3 id="stat-total-not-voted" class="text-2xl font-bold text-slate-800 mt-1">0 คน</h3>
+                </div>
+                <div class="w-12 h-12 bg-amber-50 text-amber-500 rounded-xl flex items-center justify-center text-lg">
+                    <i class="fa-solid fa-clock-rotate-left"></i>
+                </div>
+            </div>
+            <!-- Metric 4: Turnout Rate -->
+            <div class="glass-card rounded-2xl p-5 shadow-sm flex items-center justify-between">
+                <div>
+                    <p class="text-xs font-medium text-slate-400">เปอร์เซ็นต์ผู้ใช้สิทธิ์</p>
+                    <h3 id="stat-turnout-rate" class="text-2xl font-bold text-slate-800 mt-1">0.00 %</h3>
+                </div>
+                <div class="w-12 h-12 bg-rose-50 text-rose-500 rounded-xl flex items-center justify-center text-lg">
+                    <i class="fa-solid fa-percent"></i>
+                </div>
+            </div>
+        </div>
+
+        <!-- Charts and Table Grid -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <!-- Left Side: Bar Chart & Summary Details -->
+            <div class="lg:col-span-2 space-y-6">
+                <!-- Bar Chart Card -->
+                <div class="glass-card rounded-2xl p-6 shadow-sm">
+                    <h3 class="font-bold text-slate-800 mb-4 flex items-center space-x-2">
+                        <i class="fa-solid fa-chart-column text-indigo-500"></i>
+                        <span>แผนภูมิคะแนนผู้สมัครรับเลือกตั้ง</span>
+                    </h3>
+                    <div class="relative h-80">
+                        <canvas id="chart-votes"></canvas>
+                    </div>
+                </div>
+
+                <!-- Table Card -->
+                <div class="glass-card rounded-2xl p-6 shadow-sm">
+                    <h3 class="font-bold text-slate-800 mb-4 flex items-center space-x-2">
+                        <i class="fa-solid fa-list-ol text-indigo-500"></i>
+                        <span>สรุปสถิติตามรายชื่อผู้สมัคร</span>
+                    </h3>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left border-collapse">
+                            <thead>
+                                <tr class="border-b border-slate-200 text-slate-400 text-xs font-bold uppercase">
+                                    <th class="py-3 px-4">เบอร์</th>
+                                    <th class="py-3 px-4">ผู้สมัคร</th>
+                                    <th class="py-3 px-4 text-right">จำนวนคะแนนโหวต (เสียง)</th>
+                                    <th class="py-3 px-4 text-right">สัดส่วนคะแนน</th>
+                                </tr>
+                            </thead>
+                            <tbody id="results-table-body" class="divide-y divide-slate-100 text-sm">
+                                <!-- Dynamically populated from JS -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Side: Turnout Pie Chart & Candidate Details -->
+            <div class="space-y-6">
+                <!-- Turnout Chart Card -->
+                <div class="glass-card rounded-2xl p-6 shadow-sm">
+                    <h3 class="font-bold text-slate-800 mb-4 flex items-center space-x-2">
+                        <i class="fa-solid fa-chart-pie text-indigo-500"></i>
+                        <span>อัตราส่วนการมาใช้สิทธิ์</span>
+                    </h3>
+                    <div class="relative h-60 flex items-center justify-center">
+                        <canvas id="chart-turnout" class="max-w-[200px]"></canvas>
+                    </div>
+                    <div class="mt-4 flex justify-around text-xs font-semibold">
+                        <div class="flex items-center space-x-1">
+                            <span class="w-3 h-3 rounded-full bg-indigo-500 inline-block"></span>
+                            <span>มาใช้สิทธิ์</span>
+                        </div>
+                        <div class="flex items-center space-x-1">
+                            <span class="w-3 h-3 rounded-full bg-slate-200 inline-block"></span>
+                            <span>ยังไม่ใช้สิทธิ์</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Simulation Instruction Card -->
+                <div class="glass-card rounded-2xl p-6 shadow-sm border-l-4 border-indigo-500">
+                    <h3 class="font-bold text-slate-800 mb-2 flex items-center space-x-1.5">
+                        <i class="fa-solid fa-circle-question text-indigo-500"></i>
+                        <span>คำอธิบายการจำลองระบบ</span>
+                    </h3>
+                    <p class="text-xs text-slate-500 leading-relaxed space-y-2">
+                        เพื่อทดสอบระบบการเลือกตั้งอย่างสมบูรณ์แบบ ให้ทำตามขั้นตอนนี้:
+                    </p>
+                    <ol class="list-decimal list-inside text-xs text-slate-600 mt-2 space-y-2">
+                        <li>คลิกปุ่ม <b>"จำลองระบบและรีเซ็ตข้อมูล"</b> ด้านบน เพื่อล้างข้อมูลและป้อนผู้สมัครเบอร์ 1, 2, 3 พร้อมรายชื่อนักเรียนที่มีสิทธิ์ 5 คน (รหัส 65001 ถึง 65005)</li>
+                        <li>เปิดหน้านักเรียนเพื่อเริ่มทำการโหวต: <a href="/" target="_blank" class="text-indigo-600 underline font-semibold">หน้าลงคะแนน</a></li>
+                        <li>ใช้เมนูด้านบนของหน้านักเรียนเพื่อเลือก LINE ID จำลองและกรอกรหัสนักเรียน จากนั้นเลือกหมายเลขผู้สมัครและกดยืนยันโหวต</li>
+                        <li>สังเกตแผงควบคุมนี้ซึ่งจะอัปเดตผลคะแนนให้คุณแบบ Real-time โดยไม่ต้องรีเฟรชหน้าจอ</li>
+                    </ol>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="admin.js"></script>
+</body>
+</html>

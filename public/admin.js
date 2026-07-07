@@ -1,0 +1,231 @@
+// ตัวแปรสำหรับเก็บอินสแตนซ์ของ Chart.js
+let votesChart = null;
+let turnoutChart = null;
+
+// ----------------------------------------------------
+// เริ่มต้นการทำงานฝั่ง Admin Dashboard
+// ----------------------------------------------------
+window.onload = async function() {
+    // โหลดข้อมูลครั้งแรก
+    await fetchResults();
+
+    // ดึงข้อมูลใหม่โดยอัตโนมัติทุกๆ 5 วินาที (Real-time polling)
+    setInterval(fetchResults, 5000);
+};
+
+// ----------------------------------------------------
+// ดึงข้อมูลผลการเลือกตั้งจาก Backend API
+// ----------------------------------------------------
+async function fetchResults() {
+    try {
+        const response = await fetch('/api/results');
+        if (!response.ok) {
+            throw new Error('ไม่สามารถดึงข้อมูลผลการเลือกตั้งได้');
+        }
+
+        const data = await response.json();
+
+        // 1. อัปเดตการ์ดตัวเลขสถิติ (Metrics)
+        document.getElementById('stat-total-eligible').innerText = `${data.summary.total_eligible} คน`;
+        document.getElementById('stat-total-voted').innerText = `${data.summary.total_voted} คน`;
+        document.getElementById('stat-total-not-voted').innerText = `${data.summary.total_not_voted} คน`;
+        document.getElementById('stat-turnout-rate').innerText = `${data.summary.voted_percentage} %`;
+
+        // 2. อัปเดตกราฟแท่งคะแนนโหวต (Candidates Votes Bar Chart)
+        updateVotesChart(data);
+
+        // 3. อัปเดตกราฟวงกลมผู้ใช้สิทธิ์ (Turnout Pie Chart)
+        updateTurnoutChart(data);
+
+        // 4. อัปเดตตารางสรุปผลคะแนนแบบตัวอักษร
+        updateResultsTable(data);
+
+    } catch (err) {
+        console.error('Error fetching results:', err);
+    }
+}
+
+// ----------------------------------------------------
+// อัปเดตกราฟแท่งผลคะแนนโหวต
+// ----------------------------------------------------
+function updateVotesChart(data) {
+    // จัดกลุ่มข้อมูลป้ายชื่อ (Labels) และจำนวนโหวต (Votes)
+    const labels = data.candidates.map(c => `เบอร์ ${c.candidate_number}: ${c.name}`);
+    const votes = data.candidates.map(c => c.votes);
+
+    // เพิ่มตัวเลือก "ไม่ประสงค์ลงคะแนน" ลงไปในกราฟ
+    labels.push('ไม่ประสงค์ลงคะแนน (No Vote)');
+    votes.push(data.no_vote_count);
+
+    const ctx = document.getElementById('chart-votes').getContext('2d');
+
+    const chartColors = [
+        'rgba(79, 70, 229, 0.75)',  // Indigo
+        'rgba(16, 185, 129, 0.75)', // Emerald
+        'rgba(245, 158, 11, 0.75)', // Amber
+        'rgba(100, 116, 139, 0.6)'  // Slate (No Vote)
+    ];
+
+    const chartBorderColors = [
+        'rgba(79, 70, 229, 1)',
+        'rgba(16, 185, 129, 1)',
+        'rgba(245, 158, 11, 1)',
+        'rgba(100, 116, 139, 1)'
+    ];
+
+    if (votesChart === null) {
+        // สร้างกราฟใหม่ครั้งแรก
+        votesChart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'จำนวนเสียงที่ได้รับ (คะแนน)',
+                    data: votes,
+                    backgroundColor: chartColors.slice(0, votes.length),
+                    borderColor: chartBorderColors.slice(0, votes.length),
+                    borderWidth: 2,
+                    borderRadius: 8
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: false
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            stepSize: 1,
+                            font: { family: 'Kanit' }
+                        },
+                        grid: {
+                            color: 'rgba(148, 163, 184, 0.1)'
+                        }
+                    },
+                    x: {
+                        ticks: {
+                            font: { family: 'Kanit', size: 11 }
+                        },
+                        grid: {
+                            display: false
+                        }
+                    }
+                }
+            }
+        });
+    } else {
+        // อัปเดตข้อมูลกราฟเดิม (เพื่อป้องกันการกระพริบของ UI)
+        votesChart.data.labels = labels;
+        votesChart.data.datasets[0].data = votes;
+        votesChart.data.datasets[0].backgroundColor = chartColors.slice(0, votes.length);
+        votesChart.data.datasets[0].borderColor = chartBorderColors.slice(0, votes.length);
+        votesChart.update();
+    }
+}
+
+// ----------------------------------------------------
+// อัปเดตกราฟวงกลมสรุปผู้มีสิทธิ์โหวต
+// ----------------------------------------------------
+function updateTurnoutChart(data) {
+    const ctx = document.getElementById('chart-turnout').getContext('2d');
+    const votedVal = data.summary.total_voted;
+    const notVotedVal = data.summary.total_not_voted;
+
+    if (turnoutChart === null) {
+        turnoutChart = new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                labels: ['มาใช้สิทธิ์โหวตแล้ว', 'ยังไม่มาใช้สิทธิ์'],
+                datasets: [{
+                    data: [votedVal, notVotedVal],
+                    backgroundColor: [
+                        'rgba(79, 70, 229, 0.8)', // Indigo
+                        'rgba(226, 232, 240, 0.8)' // Slate light
+                    ],
+                    borderWidth: 2,
+                    borderColor: '#ffffff'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                cutout: '70%',
+                plugins: {
+                    legend: {
+                        display: false
+                    }
+                }
+            }
+        });
+    } else {
+        turnoutChart.data.datasets[0].data = [votedVal, notVotedVal];
+        turnoutChart.update();
+    }
+}
+
+// ----------------------------------------------------
+// อัปเดตตารางผลสรุปข้อมูล
+// ----------------------------------------------------
+function updateResultsTable(data) {
+    const tbody = document.getElementById('results-table-body');
+    tbody.innerHTML = '';
+
+    const totalVotesCast = data.summary.total_voted;
+
+    // 1. เพิ่มผู้สมัครทีละคนในตาราง
+    data.candidates.forEach(c => {
+        const percentage = totalVotesCast > 0 ? ((c.votes / totalVotesCast) * 100).toFixed(1) : 0;
+        
+        const tr = document.createElement('tr');
+        tr.className = 'hover:bg-slate-50 transition duration-150';
+        tr.innerHTML = `
+            <td class="py-3 px-4 font-bold text-indigo-600">เบอร์ ${c.candidate_number}</td>
+            <td class="py-3 px-4 font-medium text-slate-700">${c.name}</td>
+            <td class="py-3 px-4 text-right font-bold text-slate-800">${c.votes}</td>
+            <td class="py-3 px-4 text-right text-slate-500 font-semibold">${percentage}%</td>
+        `;
+        tbody.appendChild(tr);
+    });
+
+    // 2. เพิ่มแถว "ไม่ประสงค์ลงคะแนน" (No Vote)
+    const noVotePercentage = totalVotesCast > 0 ? ((data.no_vote_count / totalVotesCast) * 100).toFixed(1) : 0;
+    const trNoVote = document.createElement('tr');
+    trNoVote.className = 'hover:bg-slate-50 transition duration-150 bg-slate-50/50';
+    trNoVote.innerHTML = `
+        <td class="py-3 px-4 font-bold text-slate-500">-</td>
+        <td class="py-3 px-4 text-slate-500 font-medium italic">ไม่ประสงค์ลงคะแนน</td>
+        <td class="py-3 px-4 text-right font-bold text-slate-500">${data.no_vote_count}</td>
+        <td class="py-3 px-4 text-right text-slate-400 font-semibold">${noVotePercentage}%</td>
+    `;
+    tbody.appendChild(trNoVote);
+}
+
+// ----------------------------------------------------
+// เรียกใช้งาน Seeding จำลองระบบ
+// ----------------------------------------------------
+async function triggerSeedData() {
+    if (!confirm('คำเตือน: การจำลองข้อมูลตัวอย่างจะทำการล้างข้อมูลการเลือกตั้งทั้งหมด (TRUNCATE) และตั้งค่าผู้สมัครใหม่พร้อมรหัสนักเรียน 5 คน ต้องการดำเนินการต่อหรือไม่?')) {
+        return;
+    }
+
+    try {
+        const response = await fetch('/api/seed', { method: 'POST' });
+        const result = await response.json();
+
+        if (response.ok && result.success) {
+            alert('✅ สำเร็จ: ' + result.message);
+            // โหลดผลใหม่ทันทีเพื่อให้กราฟอัปเดต
+            await fetchResults();
+        } else {
+            alert('❌ ผิดพลาด: ' + (result.error || 'ไม่สามารถสั่งจำลองข้อมูลได้'));
+        }
+    } catch (err) {
+        console.error('Seeding request error:', err);
+        alert('❌ ผิดพลาด: ไม่สามารถติดต่อเซิร์ฟเวอร์ได้');
+    }
+}
