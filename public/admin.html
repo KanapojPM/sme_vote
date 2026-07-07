@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="th">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -7,7 +8,9 @@
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&family=Sarabun:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&family=Sarabun:wght@300;400;500;600&display=swap"
+        rel="stylesheet">
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
@@ -31,6 +34,7 @@
             background: linear-gradient(135deg, #F8FAFC 0%, #F1F5F9 100%);
             min-height: 100vh;
         }
+
         .glass-card {
             background: rgba(255, 255, 255, 0.9);
             backdrop-filter: blur(8px);
@@ -38,14 +42,17 @@
         }
     </style>
 </head>
+
 <body class="text-slate-800 antialiased p-6">
 
     <div class="max-w-6xl mx-auto">
         <!-- Top Navigation / Header -->
-        <header class="flex flex-col md:flex-row md:items-center md:justify-between mb-8 pb-6 border-b border-slate-200">
+        <header
+            class="flex flex-col md:flex-row md:items-center md:justify-between mb-8 pb-6 border-b border-slate-200">
             <div class="mb-4 md:mb-0">
                 <div class="flex items-center space-x-3">
-                    <div class="w-12 h-12 bg-indigo-600 text-white rounded-2xl flex items-center justify-center shadow-lg shadow-indigo-100">
+                    <div
+                        class="w-12 h-12 bg-indigo-600 text-white rounded-2xl flex items-center justify-center shadow-lg shadow-indigo-100">
                         <i class="fa-solid fa-chart-line text-2xl"></i>
                     </div>
                     <div>
@@ -56,11 +63,13 @@
             </div>
             <!-- Seeding Controls & Status Badge -->
             <div class="flex flex-wrap items-center gap-3">
-                <div class="bg-indigo-50 text-indigo-700 px-3 py-1.5 rounded-xl text-xs font-bold flex items-center space-x-1.5">
+                <div
+                    class="bg-indigo-50 text-indigo-700 px-3 py-1.5 rounded-xl text-xs font-bold flex items-center space-x-1.5">
                     <span class="w-2.5 h-2.5 rounded-full bg-indigo-600 animate-pulse"></span>
                     <span>ระบบเชื่อมต่อและดึงข้อมูลอัปเดตอัตโนมัติ (5s)</span>
                 </div>
-                <button onclick="triggerSeedData()" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs rounded-xl shadow-md transition duration-200 flex items-center space-x-1.5">
+                <button onclick="triggerSeedData()"
+                    class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs rounded-xl shadow-md transition duration-200 flex items-center space-x-1.5">
                     <i class="fa-solid fa-database"></i>
                     <span>จำลองระบบและรีเซ็ตข้อมูล (Seed Data)</span>
                 </button>
@@ -85,7 +94,8 @@
                     <p class="text-xs font-medium text-slate-400">ผู้ใช้สิทธิ์ลงคะแนนแล้ว</p>
                     <h3 id="stat-total-voted" class="text-2xl font-bold text-slate-800 mt-1">0 คน</h3>
                 </div>
-                <div class="w-12 h-12 bg-emerald-50 text-emerald-500 rounded-xl flex items-center justify-center text-lg">
+                <div
+                    class="w-12 h-12 bg-emerald-50 text-emerald-500 rounded-xl flex items-center justify-center text-lg">
                     <i class="fa-solid fa-check-double"></i>
                 </div>
             </div>
@@ -183,10 +193,13 @@
                         เพื่อทดสอบระบบการเลือกตั้งอย่างสมบูรณ์แบบ ให้ทำตามขั้นตอนนี้:
                     </p>
                     <ol class="list-decimal list-inside text-xs text-slate-600 mt-2 space-y-2">
-                        <li>คลิกปุ่ม <b>"จำลองระบบและรีเซ็ตข้อมูล"</b> ด้านบน เพื่อล้างข้อมูลและป้อนผู้สมัครเบอร์ 1, 2, 3 พร้อมรายชื่อนักเรียนที่มีสิทธิ์ 5 คน (รหัส 65001 ถึง 65005)</li>
-                        <li>เปิดหน้านักเรียนเพื่อเริ่มทำการโหวต: <a href="/" target="_blank" class="text-indigo-600 underline font-semibold">หน้าลงคะแนน</a></li>
-                        <li>ใช้เมนูด้านบนของหน้านักเรียนเพื่อเลือก LINE ID จำลองและกรอกรหัสนักเรียน จากนั้นเลือกหมายเลขผู้สมัครและกดยืนยันโหวต</li>
-                        <li>สังเกตแผงควบคุมนี้ซึ่งจะอัปเดตผลคะแนนให้คุณแบบ Real-time โดยไม่ต้องรีเฟรชหน้าจอ</li>
+                        <li>คลิกปุ่ม <b>"จำลองระบบและรีเซ็ตข้อมูล"</b> ด้านบน
+                            เพื่อล้างสถิติเก่าและจำลองผู้สมัครพรรคจริงเบอร์ 1 และ 2</li>
+                        <li>เปิดหน้านักเรียนเพื่อเริ่มลงคะแนนเสียง: <a href="/" target="_blank"
+                                class="text-indigo-600 underline font-semibold">หน้าลงคะแนน</a></li>
+                        <li>ใช้เมนูด้านบนเพื่อเลือก LINE ID จำลอง จากนั้นเลือกเบอร์ผู้สมัครและยืนยันโหวตได้ทันที
+                            (ระบบจะผ่านสิทธิ์และลงทะเบียนเข้าสู่ระบบให้อัตโนมัติโดยไม่ต้องกรอกรหัสประจำตัวนักเรียน)</li>
+                        <li>สังเกตคะแนนเสียงบนแผงควบคุมนี้ที่จะแสดงผลแบบเรียลไทม์ทันที</li>
                     </ol>
                 </div>
             </div>
@@ -195,4 +208,5 @@
 
     <script src="admin.js"></script>
 </body>
+
 </html>

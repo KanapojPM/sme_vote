@@ -48,7 +48,7 @@ app.get('/api/config', (req, res) => {
 
 // 2. ตรวจสอบสถานะว่า LINE User ID นี้ผูกรหัสสิทธิ์หรือยัง และโหวตไปหรือยัง
 app.get('/api/voter-status', async (req, res) => {
-  const { line_id } = req.query;
+  const { line_id, name } = req.query;
 
   if (!line_id) {
     return res.status(400).json({ error: 'กรุณาระบุ line_id' });
@@ -72,9 +72,23 @@ app.get('/api/voter-status', async (req, res) => {
         }
       });
     } else {
+      // ลงทะเบียนสิทธิ์ให้อัตโนมัติด้วย LINE User ID ทันทีที่เข้าเว็บครั้งแรก
+      const displayName = name || 'ผู้ใช้ LINE';
+      const studentId = line_id.substring(0, 50);
+
+      await pool.query(
+        'INSERT INTO students (student_id, line_id, name, surname) VALUES ($1, $2, $3, $4)',
+        [studentId, line_id, displayName, '']
+      );
+
       return res.json({
-        registered: false,
-        has_voted: false
+        registered: true,
+        has_voted: false,
+        student: {
+          student_id: studentId,
+          name: displayName,
+          surname: ''
+        }
       });
     }
   } catch (error) {

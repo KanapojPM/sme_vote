@@ -25,9 +25,11 @@ window.onload = async function() {
             state.lineDisplayName = profile.displayName;
             state.linePictureUrl = profile.pictureUrl || state.linePictureUrl;
             
-            // อัปเดตข้อมูลบนหน้าจอลงทะเบียน
-            document.getElementById('line-display-name').innerText = state.lineDisplayName;
-            document.getElementById('line-avatar').src = state.linePictureUrl;
+            // อัปเดตข้อมูลบนหน้าจอลงทะเบียน (ถ้ามี)
+            const displayNameEl = document.getElementById('line-display-name');
+            const avatarEl = document.getElementById('line-avatar');
+            if (displayNameEl) displayNameEl.innerText = state.lineDisplayName;
+            if (avatarEl) avatarEl.src = state.linePictureUrl;
 
             // ตรวจสอบสถานะการลงทะเบียนและการโหวตในฐานข้อมูล
             await checkVoterStatus();
@@ -56,9 +58,11 @@ async function useMockProfile() {
     state.lineUserId = mockId;
     state.lineDisplayName = mockName;
     
-    // อัปเดต UI
-    document.getElementById('line-display-name').innerText = state.lineDisplayName;
-    document.getElementById('line-avatar').src = state.linePictureUrl;
+    // อัปเดต UI (ถ้ามี)
+    const displayNameEl = document.getElementById('line-display-name');
+    const avatarEl = document.getElementById('line-avatar');
+    if (displayNameEl) displayNameEl.innerText = state.lineDisplayName;
+    if (avatarEl) avatarEl.src = state.linePictureUrl;
 
     document.getElementById('screen-mock').classList.add('hidden');
     document.getElementById('screen-loading').classList.remove('hidden');
@@ -70,14 +74,16 @@ async function useMockProfile() {
 // การเปลี่ยนหน้าจอ (Screen Controllers)
 // ----------------------------------------------------
 function showScreen(screenId) {
-    // ซ่อนทุกหน้าจอ
-    document.getElementById('screen-loading').classList.add('hidden');
-    document.getElementById('screen-register').classList.add('hidden');
-    document.getElementById('screen-voting').classList.add('hidden');
-    document.getElementById('screen-success').classList.add('hidden');
+    // รายการหน้าจอทั้งหมด
+    const screens = ['screen-loading', 'screen-register', 'screen-voting', 'screen-success'];
+    screens.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.classList.add('hidden');
+    });
 
     // แสดงหน้าจอเป้าหมาย
-    document.getElementById(screenId).classList.remove('hidden');
+    const target = document.getElementById(screenId);
+    if (target) target.classList.remove('hidden');
 }
 
 // ----------------------------------------------------
@@ -85,7 +91,7 @@ function showScreen(screenId) {
 // ----------------------------------------------------
 async function checkVoterStatus() {
     try {
-        const response = await fetch(`/api/voter-status?line_id=${state.lineUserId}`);
+        const response = await fetch(`/api/voter-status?line_id=${state.lineUserId}&name=${encodeURIComponent(state.lineDisplayName)}`);
         const data = await response.json();
 
         if (data.registered) {
@@ -93,63 +99,19 @@ async function checkVoterStatus() {
                 // หากผูกสิทธิ์และโหวตไปแล้ว -> แสดงหน้าโหวตสำเร็จ
                 showScreen('screen-success');
             } else {
-                // หากผูกสิทธิ์แล้วแต่ยังไม่ได้โหวต -> โหลดรายชื่อผู้สมัครและพาไปโหวต
-                document.getElementById('voter-name-title').innerText = `${data.student.name} ${data.student.surname} (${data.student.student_id})`;
+                // โหลดรายชื่อผู้สมัครและพาไปโหวตทันที
+                document.getElementById('voter-name-title').innerText = `${data.student.name}`;
                 await loadCandidates();
                 showScreen('screen-voting');
             }
-        } else {
-            // หากยังไม่ได้ผูกสิทธิ์ -> พาไปหน้าลงทะเบียน
-            showScreen('screen-register');
         }
     } catch (err) {
         console.error('Error checking status:', err);
-        alert('เกิดข้อผิดพลาดในการดึงข้อมูลสถานะผู้ใช้งาน');
-        showScreen('screen-register');
+        alert('เกิดข้อผิดพลาดในการเชื่อมต่อเพื่อดึงสิทธิ์ผู้ใช้งาน');
     }
 }
 
-// ผูกสิทธิ์ LINE เข้ากับรหัสนักเรียน
-async function registerStudent() {
-    const studentIdInput = document.getElementById('input-student-id');
-    const studentId = studentIdInput.value.trim();
-    const errorBox = document.getElementById('register-error');
-    const errorText = document.getElementById('register-error-text');
-
-    if (!studentId) {
-        errorText.innerText = 'กรุณากรอกรหัสนักเรียน';
-        errorBox.classList.remove('hidden');
-        return;
-    }
-
-    errorBox.classList.add('hidden');
-
-    try {
-        const response = await fetch('/api/register', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                line_id: state.lineUserId,
-                student_id: studentId
-            })
-        });
-
-        const data = await response.json();
-
-        if (response.ok && data.success) {
-            // สำเร็จ -> ตรวจสอบสถานะการโหวตใหม่เพื่อดึงข้อมูลผู้สมัคร
-            await checkVoterStatus();
-        } else {
-            // เกิดข้อผิดพลาดจาก Backend
-            errorText.innerText = data.error || 'เกิดข้อผิดพลาดในการตรวจสอบสิทธิ์';
-            errorBox.classList.remove('hidden');
-        }
-    } catch (err) {
-        console.error('Registration error:', err);
-        errorText.innerText = 'ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ได้';
-        errorBox.classList.remove('hidden');
-    }
-}
+// (ระบบยกเลิกการลงทะเบียนแบบกรอกรหัสแล้ว เนื่องจากระบบเชื่อมโยงสิทธิ์ด้วย LINE ID อัตโนมัติ)
 
 // โหลดรายชื่อผู้สมัคร
 async function loadCandidates() {
