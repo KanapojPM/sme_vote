@@ -280,17 +280,16 @@ app.get('/api/results', async (req, res) => {
     const noVotesQuery = 'SELECT COUNT(*) AS no_vote_count FROM votes WHERE candidate_id IS NULL';
     const noVotes = await pool.query(noVotesQuery);
 
-    // 3. ดึงสถิติการใช้สิทธิ์ของนักเรียนทั้งหมด
-    const statsQuery = `
-      SELECT 
-        COUNT(*) AS total_eligible,
-        SUM(CASE WHEN has_voted = TRUE THEN 1 ELSE 0 END) AS total_voted,
-        SUM(CASE WHEN has_voted = FALSE THEN 1 ELSE 0 END) AS total_not_voted
-      FROM students
-    `;
-    const stats = await pool.query(statsQuery);
+    // 3. ดึงจำนวนผู้มีสิทธิ์เลือกตั้งจากตารางตั้งค่า
+    const settingsRes = await pool.query("SELECT value FROM system_settings WHERE key = 'total_students'");
+    const totalEligible = settingsRes.rows.length > 0 ? parseInt(settingsRes.rows[0].value, 10) : 100;
 
-    const statsData = stats.rows[0];
+    // 4. ดึงจำนวนผู้ใช้สิทธิ์จริง
+    const votedRes = await pool.query("SELECT COUNT(*) AS total_voted FROM students WHERE has_voted = TRUE");
+    const totalVoted = votedRes.rows.length > 0 ? parseInt(votedRes.rows[0].total_voted, 10) : 0;
+
+    const totalNotVoted = Math.max(0, totalEligible - totalVoted);
+    const votedPercentage = totalEligible > 0 ? ((totalVoted / totalEligible) * 100).toFixed(2) : "0.00";
 
     res.json({
       candidates: candidateVotes.rows.map(row => ({
@@ -301,17 +300,35 @@ app.get('/api/results', async (req, res) => {
       })),
       no_vote_count: parseInt(noVotes.rows[0].no_vote_count, 10),
       summary: {
-        total_eligible: parseInt(statsData.total_eligible, 10) || 0,
-        total_voted: parseInt(statsData.total_voted, 10) || 0,
-        total_not_voted: parseInt(statsData.total_not_voted, 10) || 0,
-        voted_percentage: statsData.total_eligible > 0 
-          ? ((statsData.total_voted / statsData.total_eligible) * 100).toFixed(2)
-          : "0.00"
+        total_eligible: totalEligible,
+        total_voted: totalVoted,
+        total_not_voted: totalNotVoted,
+        voted_percentage: votedPercentage
       }
     });
   } catch (error) {
     console.error('results error:', error);
     res.status(500).json({ error: 'ไม่สามารถดึงผลสถิติคะแนนโหวตได้' });
+  }
+});
+
+// 6.5. บันทึกจำนวนผู้มีสิทธิ์เลือกตั้งทั้งหมด (ตั้งค่าจาก Admin Dashboard)
+app.post('/api/settings/total-students', async (req, res) => {
+  const { value } = req.body;
+  if (value === undefined || parseInt(value, 10) <= 0) {
+    return res.status(400).json({ error: 'จำนวนผู้มีสิทธิ์เลือกตั้งต้องมากกว่า 0' });
+  }
+
+  try {
+    await pool.query(
+      `INSERT INTO system_settings (key, value) VALUES ('total_students', $1) 
+       ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value`,
+      [value.toString()]
+    );
+    res.json({ success: true, message: 'บันทึกจำนวนผู้มีสิทธิ์เลือกตั้งทั้งหมดสำเร็จ' });
+  } catch (error) {
+    console.error('set total-students error:', error);
+    res.status(500).json({ error: 'เกิดข้อผิดพลาดในการบันทึกค่าตั้งค่าระบบ' });
   }
 });
 

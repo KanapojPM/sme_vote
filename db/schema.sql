@@ -27,3 +27,12 @@ CREATE TABLE IF NOT EXISTS votes (
 
 -- สร้าง Index บน candidate_id เพื่อความเร็วในการรันคำสั่งสรุปผลคะแนน
 CREATE INDEX IF NOT EXISTS idx_votes_candidate_id ON votes(candidate_id);
+
+-- ตารางการตั้งค่าระบบ (สำหรับระบุจำนวนนักเรียน หรือสถิติที่กำหนดโดยแอดมิน)
+CREATE TABLE IF NOT EXISTS system_settings (
+    key VARCHAR(50) PRIMARY KEY,
+    value VARCHAR(255) NOT NULL
+);
+
+-- ใส่ค่าเริ่มต้นสำหรับจำนวนผู้มีสิทธิ์เลือกตั้งทั้งหมด (ถ้ายังไม่มี)
+INSERT INTO system_settings (key, value) VALUES ('total_students', '100') ON CONFLICT DO NOTHING;

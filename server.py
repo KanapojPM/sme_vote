@@ -38,6 +38,11 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# กำหนดงานที่ต้องทำทันทีเมื่อโปรแกรมเริ่มทำงาน (Startup Event)
+@app.on_event("startup")
+def startup_event():
+    init_db()
+
 # เริ่มต้นระบบ Connection Pool สำหรับ PostgreSQL
 try:
     db_pool = SimpleConnectionPool(1, 10, dsn=DATABASE_URL)
@@ -96,6 +101,9 @@ class RegisterRequest(BaseModel):
 class VoteRequest(BaseModel):
     line_id: str
     candidate_id: Optional[int] = None # เป็น None ได้ในกรณีไม่ประสงค์ลงคะแนน
+
+class SettingRequest(BaseModel):
+    value: int
 
 # ----------------------------------------------------
 # API Endpoints
@@ -301,19 +309,17 @@ def get_results():
             no_vote = cur.fetchone()
             no_vote_count = no_vote["no_vote_count"] if no_vote else 0
             
-            # ดึงสถิติรวมของนักเรียน
-            cur.execute("""
-                SELECT 
-                    COUNT(*) AS total_eligible,
-                    SUM(CASE WHEN has_voted = TRUE THEN 1 ELSE 0 END) AS total_voted,
-                    SUM(CASE WHEN has_voted = FALSE THEN 1 ELSE 0 END) AS total_not_voted
-                FROM students
-            """)
-            stats = cur.fetchone()
+            # ดึงการตั้งค่าจำนวนนักเรียนทั้งหมดจากตาราง system_settings
+            cur.execute("SELECT value FROM system_settings WHERE key = 'total_students'")
+            setting_row = cur.fetchone()
+            total_eligible = int(setting_row["value"]) if setting_row else 100
+
+            # ดึงสถิติจำนวนผู้ใช้สิทธิ์โหวตจริง
+            cur.execute("SELECT COUNT(*) AS total_voted FROM students WHERE has_voted = TRUE")
+            voted_row = cur.fetchone()
+            total_voted = voted_row["total_voted"] if voted_row else 0
             
-            total_eligible = stats["total_eligible"] if stats else 0
-            total_voted = stats["total_voted"] if stats else 0
-            total_not_voted = stats["total_not_voted"] if stats else 0
+            total_not_voted = max(0, total_eligible - total_voted)
             
             voted_percentage = "0.00"
             if total_eligible > 0:
@@ -337,6 +343,23 @@ def get_results():
                     "voted_percentage": voted_percentage
                 }
             }
+
+# 6.5. บันทึกจำนวนผู้มีสิทธิ์เลือกตั้งทั้งหมด (ตั้งค่าจาก Admin Dashboard)
+@app.post("/api/settings/total-students")
+def set_total_students(req: SettingRequest):
+    if req.value <= 0:
+        raise HTTPException(status_code=400, detail="จำนวนผู้มีสิทธิ์เลือกตั้งต้องมากกว่า 0")
+        
+    with get_db_conn() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                "INSERT INTO system_settings (key, value) VALUES ('total_students', %s) "
+                "ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value",
+                (str(req.value),)
+            )
+            conn.commit()
+            
+    return {"success": True, "message": "บันทึกจำนวนผู้มีสิทธิ์เลือกตั้งทั้งหมดสำเร็จ"}
 
 # 7. Endpoint จำลองสิทธิ์นักเรียน 5 คน และผู้สมัคร 3 คน (Seed Data)
 @app.post("/api/seed")

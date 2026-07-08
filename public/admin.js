@@ -31,6 +31,12 @@ async function fetchResults() {
         document.getElementById('stat-total-not-voted').innerText = `${data.summary.total_not_voted} คน`;
         document.getElementById('stat-turnout-rate').innerText = `${data.summary.voted_percentage} %`;
 
+        // อัปเดตช่องป้อนข้อมูลจำนวนนักเรียน (เฉพาะกรณีที่แอดมินไม่ได้กำลังพิมพ์อยู่)
+        const totalStudentsInput = document.getElementById('input-total-students');
+        if (totalStudentsInput && document.activeElement !== totalStudentsInput) {
+            totalStudentsInput.value = data.summary.total_eligible;
+        }
+
         // 2. อัปเดตกราฟแท่งคะแนนโหวต (Candidates Votes Bar Chart)
         updateVotesChart(data);
 
@@ -227,5 +233,38 @@ async function triggerSeedData() {
     } catch (err) {
         console.error('Seeding request error:', err);
         alert('❌ ผิดพลาด: ไม่สามารถติดต่อเซิร์ฟเวอร์ได้');
+    }
+}
+
+// ----------------------------------------------------
+// บันทึกการตั้งค่าจำนวนผู้มีสิทธิ์เลือกตั้งทั้งหมดไปยัง API
+// ----------------------------------------------------
+async function saveTotalStudents() {
+    const input = document.getElementById('input-total-students');
+    if (!input) return;
+
+    const value = parseInt(input.value, 10);
+    if (isNaN(value) || value <= 0) {
+        alert('กรุณาระบุจำนวนผู้มีสิทธิ์เลือกตั้งที่มากกว่า 0');
+        return;
+    }
+
+    try {
+        const response = await fetch('/api/settings/total-students', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ value: value })
+        });
+
+        const data = await response.json();
+        if (response.ok && data.success) {
+            alert('✅ บันทึกสถิติจำนวนนักเรียนทั้งหมดเรียบร้อยแล้ว');
+            await fetchResults(); // ดึงผลและคำนวณสถิติใหม่ทันที
+        } else {
+            alert('❌ ไม่สามารถบันทึกได้: ' + (data.error || 'กรุณาลองอีกครั้ง'));
+        }
+    } catch (err) {
+        console.error('Save settings error:', err);
+        alert('❌ ไม่สามารถติดต่อเซิร์ฟเวอร์เพื่อบันทึกการตั้งค่าได้');
     }
 }
