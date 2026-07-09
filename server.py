@@ -1,6 +1,6 @@
 import os
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional, List, Dict, Any
 from contextlib import contextmanager
 
@@ -144,7 +144,7 @@ def get_voting_time_status():
         logger.error(f"Error querying voting settings: {e}")
         return "open", "", ""
 
-    now = datetime.now()
+    now = datetime.now(timezone.utc)
     start_str = settings.get('voting_start_time', '')
     end_str = settings.get('voting_end_time', '')
     
@@ -152,8 +152,8 @@ def get_voting_time_status():
     
     if start_str:
         try:
-            # รูปแบบ datetime-local: YYYY-MM-DDTHH:MM
-            start_dt = datetime.fromisoformat(start_str.replace("Z", ""))
+            # แปลง ISO string ที่เก็บเป็น UTC (ลงท้าย Z หรือมี timezone offset) เป็น datetime ที่ระบุ timezone
+            start_dt = datetime.fromisoformat(start_str.replace("Z", "+00:00"))
             if now < start_dt:
                 status_str = "not_started"
         except Exception as e:
@@ -161,7 +161,7 @@ def get_voting_time_status():
             
     if end_str and status_str == "open":
         try:
-            end_dt = datetime.fromisoformat(end_str.replace("Z", ""))
+            end_dt = datetime.fromisoformat(end_str.replace("Z", "+00:00"))
             if now > end_dt:
                 status_str = "ended"
         except Exception as e:

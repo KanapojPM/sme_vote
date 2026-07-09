@@ -71,11 +71,11 @@ async function fetchResults() {
         // อัปเดตช่องป้อนข้อมูลช่วงเวลาโหวต (เฉพาะกรณีไม่ได้โฟกัสพิมพ์อยู่)
         const startInput = document.getElementById('voting-start-input');
         if (startInput && document.activeElement !== startInput) {
-            startInput.value = data.voting_start_time || '';
+            startInput.value = toDatetimeLocal(data.voting_start_time);
         }
         const endInput = document.getElementById('voting-end-input');
         if (endInput && document.activeElement !== endInput) {
-            endInput.value = data.voting_end_time || '';
+            endInput.value = toDatetimeLocal(data.voting_end_time);
         }
 
         // 2. อัปเดตกราฟแท่งคะแนนโหวต (Candidates Votes Bar Chart)
@@ -386,6 +386,10 @@ async function saveVotingTime() {
         return;
     }
 
+    // แปลงวันเวลาที่กรอกใน timezone ท้องถิ่นของเบราว์เซอร์ให้เป็น ISO string (UTC) เพื่อจัดเก็บแบบเป็นกลางบนฐานข้อมูล
+    const startTimeIso = startTime ? new Date(startTime).toISOString() : '';
+    const endTimeIso = endTime ? new Date(endTime).toISOString() : '';
+
     try {
         const password = sessionStorage.getItem('adminPassword');
         const response = await fetch('/api/settings/voting-time', {
@@ -395,8 +399,8 @@ async function saveVotingTime() {
                 'x-admin-password': password
             },
             body: JSON.stringify({
-                start_time: startTime,
-                end_time: endTime
+                start_time: startTimeIso,
+                end_time: endTimeIso
             })
         });
 
@@ -447,5 +451,21 @@ async function clearVotingTime() {
     } catch (err) {
         console.error('Clear voting time error:', err);
         alert('❌ ไม่สามารถติดต่อเซิร์ฟเวอร์เพื่อล้างค่าการตั้งค่าได้');
+    }
+}
+
+// ฟังก์ชันแปลง ISO UTC String เป็น datetime-local สำหรับแสดงผลในเขตเวลาของบราว์เซอร์ผู้ใช้
+function toDatetimeLocal(isoString) {
+    if (!isoString) return '';
+    try {
+        const date = new Date(isoString);
+        if (isNaN(date.getTime())) return '';
+        // ปรับเวลาโดยชดเชยค่าเบี่ยงเบนเขตเวลาของคอมพิวเตอร์ปัจจุบัน (Timezone Offset)
+        const tzOffset = date.getTimezoneOffset() * 60000;
+        const localTime = new Date(date.getTime() - tzOffset);
+        return localTime.toISOString().slice(0, 16);
+    } catch (e) {
+        console.error('Error formatting datetime-local:', e);
+        return '';
     }
 }
