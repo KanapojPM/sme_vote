@@ -6,6 +6,7 @@ let turnoutChart = null;
 // เริ่มต้นการทำงานฝั่ง Admin Dashboard
 // ----------------------------------------------------
 let pollInterval = null;
+let isSettingsLoaded = false;
 
 window.onload = async function() {
     const password = sessionStorage.getItem('adminPassword');
@@ -62,20 +63,21 @@ async function fetchResults() {
         document.getElementById('stat-total-not-voted').innerText = `${data.summary.total_not_voted} คน`;
         document.getElementById('stat-turnout-rate').innerText = `${data.summary.voted_percentage} %`;
 
-        // อัปเดตช่องป้อนข้อมูลจำนวนนักเรียน (เฉพาะกรณีที่แอดมินไม่ได้กำลังพิมพ์อยู่)
-        const totalStudentsInput = document.getElementById('input-total-students');
-        if (totalStudentsInput && document.activeElement !== totalStudentsInput) {
-            totalStudentsInput.value = data.summary.total_eligible;
-        }
-
-        // อัปเดตช่องป้อนข้อมูลช่วงเวลาโหวต (เฉพาะกรณีไม่ได้โฟกัสพิมพ์อยู่)
-        const startInput = document.getElementById('voting-start-input');
-        if (startInput && document.activeElement !== startInput) {
-            startInput.value = toDatetimeLocal(data.voting_start_time);
-        }
-        const endInput = document.getElementById('voting-end-input');
-        if (endInput && document.activeElement !== endInput) {
-            endInput.value = toDatetimeLocal(data.voting_end_time);
+        // อัปเดตช่องป้อนข้อมูลการตั้งค่า (โหลดครั้งแรกหรือหลังบันทึกเท่านั้น เพื่อไม่ให้กวนเวลาแอดมินกำลังกรอก)
+        if (!isSettingsLoaded) {
+            const totalStudentsInput = document.getElementById('input-total-students');
+            if (totalStudentsInput) {
+                totalStudentsInput.value = data.summary.total_eligible;
+            }
+            const startInput = document.getElementById('voting-start-input');
+            if (startInput) {
+                startInput.value = toDatetimeLocal(data.voting_start_time);
+            }
+            const endInput = document.getElementById('voting-end-input');
+            if (endInput) {
+                endInput.value = toDatetimeLocal(data.voting_end_time);
+            }
+            isSettingsLoaded = true;
         }
 
         // 2. อัปเดตกราฟแท่งคะแนนโหวต (Candidates Votes Bar Chart)
@@ -310,6 +312,7 @@ async function saveTotalStudents() {
         const data = await response.json();
         if (response.ok && data.success) {
             alert('✅ บันทึกสถิติจำนวนนักเรียนทั้งหมดเรียบร้อยแล้ว');
+            isSettingsLoaded = false;
             await fetchResults(); // ดึงผลและคำนวณสถิติใหม่ทันที
         } else {
             alert('❌ ไม่สามารถบันทึกได้: ' + (data.error || 'กรุณาลองอีกครั้ง'));
@@ -350,6 +353,7 @@ async function loginAdmin() {
             input.value = '';
             
             // เริ่มต้นการดึงข้อมูลสถิติใหม่
+            isSettingsLoaded = false;
             await fetchResults();
             if (pollInterval) clearInterval(pollInterval);
             pollInterval = setInterval(fetchResults, 5000);
@@ -366,6 +370,7 @@ async function loginAdmin() {
 
 function logoutAdmin() {
     sessionStorage.removeItem('adminPassword');
+    isSettingsLoaded = false;
     window.location.reload();
 }
 
@@ -407,6 +412,7 @@ async function saveVotingTime() {
         const data = await response.json();
         if (response.ok && data.success) {
             alert('✅ บันทึกช่วงเวลาเปิด-ปิดโหวตสำเร็จ');
+            isSettingsLoaded = false;
             await fetchResults(); // อัปเดตสถิติตามกรอบเวลาใหม่
         } else {
             alert('❌ ไม่สามารถบันทึกได้: ' + (data.error || 'กรุณาลองอีกครั้ง'));
@@ -444,6 +450,7 @@ async function clearVotingTime() {
         const data = await response.json();
         if (response.ok && data.success) {
             alert('✅ ล้างช่วงเวลาลงคะแนนสำเร็จ (ระบบจะเปิดให้โหวตได้ตลอดเวลา)');
+            isSettingsLoaded = false;
             await fetchResults();
         } else {
             alert('❌ ไม่สามารถล้างค่าได้: ' + (data.error || 'กรุณาลองอีกครั้ง'));
