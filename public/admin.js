@@ -68,6 +68,16 @@ async function fetchResults() {
             totalStudentsInput.value = data.summary.total_eligible;
         }
 
+        // อัปเดตช่องป้อนข้อมูลช่วงเวลาโหวต (เฉพาะกรณีไม่ได้โฟกัสพิมพ์อยู่)
+        const startInput = document.getElementById('voting-start-input');
+        if (startInput && document.activeElement !== startInput) {
+            startInput.value = data.voting_start_time || '';
+        }
+        const endInput = document.getElementById('voting-end-input');
+        if (endInput && document.activeElement !== endInput) {
+            endInput.value = data.voting_end_time || '';
+        }
+
         // 2. อัปเดตกราฟแท่งคะแนนโหวต (Candidates Votes Bar Chart)
         updateVotesChart(data);
 
@@ -357,4 +367,85 @@ async function loginAdmin() {
 function logoutAdmin() {
     sessionStorage.removeItem('adminPassword');
     window.location.reload();
+}
+
+// ----------------------------------------------------
+// บันทึกและรีเซ็ตช่วงเวลาเปิด-ปิดโหวต
+// ----------------------------------------------------
+async function saveVotingTime() {
+    const startInput = document.getElementById('voting-start-input');
+    const endInput = document.getElementById('voting-end-input');
+    if (!startInput || !endInput) return;
+
+    const startTime = startInput.value;
+    const endTime = endInput.value;
+
+    // ตรวจสอบความถูกต้องของตรรกะเวลาเบื้องต้น (ถ้ากรอกทั้งคู่ ต้องให้เวลาเริ่ม < เวลาปิด)
+    if (startTime && endTime && new Date(startTime) >= new Date(endTime)) {
+        alert('❌ ผิดพลาด: วันเวลาเริ่มต้นโหวตจะต้องมาถึงก่อนวันเวลาสิ้นสุดโหวต');
+        return;
+    }
+
+    try {
+        const password = sessionStorage.getItem('adminPassword');
+        const response = await fetch('/api/settings/voting-time', {
+            method: 'POST',
+            headers: { 
+                'Content-Type': 'application/json',
+                'x-admin-password': password
+            },
+            body: JSON.stringify({
+                start_time: startTime,
+                end_time: endTime
+            })
+        });
+
+        const data = await response.json();
+        if (response.ok && data.success) {
+            alert('✅ บันทึกช่วงเวลาเปิด-ปิดโหวตสำเร็จ');
+            await fetchResults(); // อัปเดตสถิติตามกรอบเวลาใหม่
+        } else {
+            alert('❌ ไม่สามารถบันทึกได้: ' + (data.error || 'กรุณาลองอีกครั้ง'));
+        }
+    } catch (err) {
+        console.error('Save voting time error:', err);
+        alert('❌ ไม่สามารถติดต่อเซิร์ฟเวอร์เพื่อบันทึกการตั้งค่าได้');
+    }
+}
+
+async function clearVotingTime() {
+    if (!confirm('ต้องการล้างช่วงเวลาเปิด-ปิดโหวตเพื่อปล่อยให้โหวตได้ตลอดเวลาใช่หรือไม่?')) {
+        return;
+    }
+
+    const startInput = document.getElementById('voting-start-input');
+    const endInput = document.getElementById('voting-end-input');
+    if (startInput) startInput.value = '';
+    if (endInput) endInput.value = '';
+
+    try {
+        const password = sessionStorage.getItem('adminPassword');
+        const response = await fetch('/api/settings/voting-time', {
+            method: 'POST',
+            headers: { 
+                'Content-Type': 'application/json',
+                'x-admin-password': password
+            },
+            body: JSON.stringify({
+                start_time: '',
+                end_time: ''
+            })
+        });
+
+        const data = await response.json();
+        if (response.ok && data.success) {
+            alert('✅ ล้างช่วงเวลาลงคะแนนสำเร็จ (ระบบจะเปิดให้โหวตได้ตลอดเวลา)');
+            await fetchResults();
+        } else {
+            alert('❌ ไม่สามารถล้างค่าได้: ' + (data.error || 'กรุณาลองอีกครั้ง'));
+        }
+    } catch (err) {
+        console.error('Clear voting time error:', err);
+        alert('❌ ไม่สามารถติดต่อเซิร์ฟเวอร์เพื่อล้างค่าการตั้งค่าได้');
+    }
 }

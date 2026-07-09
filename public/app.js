@@ -95,6 +95,36 @@ async function checkVoterStatus() {
         const data = await response.json();
 
         if (data.registered) {
+            // ตรวจสอบว่าระบบอยู่ในช่วงเวลาลงคะแนนหรือไม่
+            if (data.voting_status && data.voting_status !== 'open') {
+                const formatDate = (isoStr) => {
+                    if (!isoStr) return 'ไม่ได้กำหนด';
+                    try {
+                        const date = new Date(isoStr);
+                        return date.toLocaleString('th-TH', { 
+                            dateStyle: 'medium', 
+                            timeStyle: 'short' 
+                        }) + ' น.';
+                    } catch (e) {
+                        return isoStr;
+                    }
+                };
+
+                document.getElementById('waiting-start-time').innerText = formatDate(data.voting_start_time);
+                document.getElementById('waiting-end-time').innerText = formatDate(data.voting_end_time);
+
+                if (data.voting_status === 'not_started') {
+                    document.getElementById('waiting-title').innerText = 'การลงคะแนนยังไม่เริ่มต้น';
+                    document.getElementById('waiting-message').innerText = 'ระบบจะเปิดรับคะแนนเสียงเมื่อถึงเวลาที่กำหนด';
+                } else if (data.voting_status === 'ended') {
+                    document.getElementById('waiting-title').innerText = 'การลงคะแนนเสร็จสิ้นแล้ว';
+                    document.getElementById('waiting-message').innerText = 'ระบบได้ปิดรับคะแนนโหวตสำหรับการเลือกตั้งครั้งนี้แล้ว';
+                }
+
+                showScreen('screen-waiting');
+                return;
+            }
+
             if (data.has_voted) {
                 // หากผูกสิทธิ์และโหวตไปแล้ว -> แสดงหน้าโหวตสำเร็จ
                 showScreen('screen-success');

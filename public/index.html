@@ -159,6 +159,32 @@
             </div>
             <p class="text-xs text-slate-400">คุณสามารถปิดหน้านี้เพื่อกลับไปยังห้องแชท LINE ได้ทันที</p>
         </div>
+
+        <!-- 5.5 WAITING SCREEN -->
+        <div id="screen-waiting"
+            class="hidden glass-card rounded-3xl p-8 shadow-xl text-center border-t-4 border-amber-500">
+            <div
+                class="w-20 h-20 bg-amber-50 text-amber-500 rounded-full flex items-center justify-center mx-auto mb-6 shadow-inner animate-pulse">
+                <i class="fa-solid fa-clock text-4xl"></i>
+            </div>
+            <h2 id="waiting-title" class="text-xl font-bold text-slate-900 mb-2">ไม่อยู่ในช่วงเวลาลงคะแนน</h2>
+            <p id="waiting-message" class="text-slate-600 text-sm mb-6">ขณะนี้ระบบปิดการรับคะแนนชั่วคราว</p>
+            <div class="bg-indigo-50/50 rounded-2xl p-4 text-xs text-indigo-700 mb-6 text-left space-y-2">
+                <div class="flex justify-between">
+                    <span class="font-medium">เวลาเริ่มโหวต:</span>
+                    <span id="waiting-start-time" class="font-semibold text-slate-700">-</span>
+                </div>
+                <div class="flex justify-between">
+                    <span class="font-medium">เวลาปิดโหวต:</span>
+                    <span id="waiting-end-time" class="font-semibold text-slate-700">-</span>
+                </div>
+            </div>
+            <button onclick="checkVoterStatus()"
+                class="w-full py-3.5 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-2xl text-xs transition duration-200 shadow-lg shadow-indigo-100 flex items-center justify-center space-x-2">
+                <i class="fa-solid fa-arrows-rotate"></i>
+                <span>ตรวจสอบเวลาอีกครั้ง</span>
+            </button>
+        </div>
     </div>
 
     <!-- 6. VOTE CONFIRMATION MODAL -->

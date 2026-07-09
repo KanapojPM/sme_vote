@@ -1,5 +1,6 @@
 import os
 import logging
+from datetime import datetime
 from typing import Optional, List, Dict, Any
 from contextlib import contextmanager
 
@@ -109,6 +110,10 @@ class SettingRequest(BaseModel):
 class LoginRequest(BaseModel):
     password: str
 
+class VotingTimeRequest(BaseModel):
+    start_time: Optional[str] = None
+    end_time: Optional[str] = None
+
 # ----------------------------------------------------
 # ฟังก์ชันตรวจสอบความปลอดภัยผู้ดูแลระบบ
 # ----------------------------------------------------
@@ -118,6 +123,51 @@ def verify_admin_password(x_admin_password: Optional[str]):
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="รหัสผ่านผู้ดูแลระบบไม่ถูกต้อง ไม่มีสิทธิ์เข้าถึงข้อมูล"
         )
+
+# ----------------------------------------------------
+# ฟังก์ชันดึงสถานะเวลาลงคะแนนเสียง
+# ----------------------------------------------------
+def get_voting_time_status():
+    start_time = ""
+    end_time = ""
+    
+    if not db_pool:
+        return "open", "", ""
+        
+    try:
+        with get_db_conn() as conn:
+            with conn.cursor() as cur:
+                cur.execute("SELECT key, value FROM system_settings WHERE key IN ('voting_start_time', 'voting_end_time')")
+                rows = cur.fetchall()
+                settings = {row[0]: row[1] for row in rows}
+    except Exception as e:
+        logger.error(f"Error querying voting settings: {e}")
+        return "open", "", ""
+
+    now = datetime.now()
+    start_str = settings.get('voting_start_time', '')
+    end_str = settings.get('voting_end_time', '')
+    
+    status_str = "open"
+    
+    if start_str:
+        try:
+            # รูปแบบ datetime-local: YYYY-MM-DDTHH:MM
+            start_dt = datetime.fromisoformat(start_str.replace("Z", ""))
+            if now < start_dt:
+                status_str = "not_started"
+        except Exception as e:
+            logger.error(f"Error parsing start_time '{start_str}': {e}")
+            
+    if end_str and status_str == "open":
+        try:
+            end_dt = datetime.fromisoformat(end_str.replace("Z", ""))
+            if now > end_dt:
+                status_str = "ended"
+        except Exception as e:
+            logger.error(f"Error parsing end_time '{end_str}': {e}")
+            
+    return status_str, start_str, end_str
 
 # ----------------------------------------------------
 # API Endpoints
@@ -137,6 +187,8 @@ def get_voter_status(
     if not line_id:
         raise HTTPException(status_code=400, detail="กรุณาระบุ line_id")
         
+    voting_status, start_time, end_time = get_voting_time_status()
+        
     with get_db_conn() as conn:
         with conn.cursor(cursor_factory=RealDictCursor) as cur:
             cur.execute(
@@ -149,6 +201,9 @@ def get_voter_status(
                 return {
                     "registered": True,
                     "has_voted": row["has_voted"],
+                    "voting_status": voting_status,
+                    "voting_start_time": start_time,
+                    "voting_end_time": end_time,
                     "student": {
                         "student_id": row["student_id"],
                         "name": row["name"],
@@ -170,6 +225,9 @@ def get_voter_status(
                     return {
                         "registered": True,
                         "has_voted": False,
+                        "voting_status": voting_status,
+                        "voting_start_time": start_time,
+                        "voting_end_time": end_time,
                         "student": {
                             "student_id": student_id,
                             "name": display_name,
@@ -249,6 +307,12 @@ def get_candidates():
 # 5. ลงคะแนนโหวต (ระบบความปลอดภัยสูงสุด ป้องกัน Double Vote ด้วย DB Transactions และ Row Locking)
 @app.post("/api/vote")
 def cast_vote(req: VoteRequest):
+    voting_status, _, _ = get_voting_time_status()
+    if voting_status != "open":
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="ไม่อยู่ในช่วงเวลาเปิดลงคะแนนเสียง"
+        )
     with get_db_conn() as conn:
         with conn.cursor(cursor_factory=RealDictCursor) as cur:
             # 1. ล็อคแถวข้อมูลของนักเรียนเพื่ออัปเดตและป้องกันการยิง API ซ้ำซ้อน (Race Condition)
@@ -329,6 +393,13 @@ def get_results(x_admin_password: Optional[str] = Header(None)):
             setting_row = cur.fetchone()
             total_eligible = int(setting_row["value"]) if setting_row else 100
 
+            # ดึงช่วงเวลาโหวต
+            cur.execute("SELECT key, value FROM system_settings WHERE key IN ('voting_start_time', 'voting_end_time')")
+            time_rows = cur.fetchall()
+            time_settings = {row["key"]: row["value"] for row in time_rows}
+            voting_start_time = time_settings.get("voting_start_time", "")
+            voting_end_time = time_settings.get("voting_end_time", "")
+
             # ดึงสถิติจำนวนผู้ใช้สิทธิ์โหวตจริง
             cur.execute("SELECT COUNT(*) AS total_voted FROM students WHERE has_voted = TRUE")
             voted_row = cur.fetchone()
@@ -351,6 +422,8 @@ def get_results(x_admin_password: Optional[str] = Header(None)):
                     for row in candidate_votes
                 ],
                 "no_vote_count": no_vote_count,
+                "voting_start_time": voting_start_time,
+                "voting_end_time": voting_end_time,
                 "summary": {
                     "total_eligible": total_eligible,
                     "total_voted": total_voted,
@@ -376,6 +449,27 @@ def set_total_students(req: SettingRequest, x_admin_password: Optional[str] = He
             conn.commit()
             
     return {"success": True, "message": "บันทึกจำนวนผู้มีสิทธิ์เลือกตั้งทั้งหมดสำเร็จ"}
+
+# 6.6. บันทึกช่วงเวลาเปิด-ปิดโหวต (ตั้งค่าจาก Admin Dashboard)
+@app.post("/api/settings/voting-time")
+def set_voting_time(req: VotingTimeRequest, x_admin_password: Optional[str] = Header(None)):
+    verify_admin_password(x_admin_password)
+    with get_db_conn() as conn:
+        with conn.cursor() as cur:
+            # บันทึกเวลาเริ่มต้นโหวต
+            cur.execute(
+                "INSERT INTO system_settings (key, value) VALUES ('voting_start_time', %s) "
+                "ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value",
+                (req.start_time if req.start_time else "",)
+            )
+            # บันทึกเวลาสิ้นสุดโหวต
+            cur.execute(
+                "INSERT INTO system_settings (key, value) VALUES ('voting_end_time', %s) "
+                "ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value",
+                (req.end_time if req.end_time else "",)
+            )
+            conn.commit()
+    return {"success": True, "message": "บันทึกช่วงเวลาลงคะแนนเสียงสำเร็จ"}
 
 # 6.8. API สำหรับตรวจสอบสิทธิ์เข้าใช้งานหน้าแอดมิน (Login)
 @app.post("/api/admin/login")

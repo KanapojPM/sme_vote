@@ -19,6 +19,34 @@ const verifyAdminPassword = (req, res, next) => {
   next();
 };
 
+// ฟังก์ชันดึงสถานะเวลาลงคะแนนเสียง
+async function getVotingTimeStatus() {
+  try {
+    const res = await pool.query("SELECT key, value FROM system_settings WHERE key IN ('voting_start_time', 'voting_end_time')");
+    const settings = {};
+    res.rows.forEach(row => {
+      settings[row.key] = row.value;
+    });
+
+    const now = new Date();
+    const startStr = settings.voting_start_time || '';
+    const endStr = settings.voting_end_time || '';
+    const startTime = startStr ? new Date(startStr) : null;
+    const endTime = endStr ? new Date(endStr) : null;
+
+    let status = 'open';
+    if (startTime && now < startTime) {
+      status = 'not_started';
+    } else if (endTime && now > endTime) {
+      status = 'ended';
+    }
+    return { status, start: startStr, end: endStr };
+  } catch (error) {
+    console.error('getVotingTimeStatus error:', error);
+    return { status: 'open', start: '', end: '' };
+  }
+}
+
 // การตั้งค่า Middleware
 app.use(cors());
 app.use(express.json());
@@ -66,6 +94,7 @@ app.get('/api/voter-status', async (req, res) => {
   }
 
   try {
+    const timeStatus = await getVotingTimeStatus();
     const result = await pool.query(
       'SELECT student_id, name, surname, has_voted FROM students WHERE line_id = $1',
       [line_id]
@@ -76,6 +105,9 @@ app.get('/api/voter-status', async (req, res) => {
       return res.json({
         registered: true,
         has_voted: voter.has_voted,
+        voting_status: timeStatus.status,
+        voting_start_time: timeStatus.start,
+        voting_end_time: timeStatus.end,
         student: {
           student_id: voter.student_id,
           name: voter.name,
@@ -95,6 +127,9 @@ app.get('/api/voter-status', async (req, res) => {
       return res.json({
         registered: true,
         has_voted: false,
+        voting_status: timeStatus.status,
+        voting_start_time: timeStatus.start,
+        voting_end_time: timeStatus.end,
         student: {
           student_id: studentId,
           name: displayName,
@@ -198,6 +233,11 @@ app.get('/api/candidates', async (req, res) => {
 app.post('/api/vote', async (req, res) => {
   const { line_id, candidate_id } = req.body; // candidate_id เป็น null ได้ในกรณี "ไม่ประสงค์ลงคะแนน"
 
+  const timeStatus = await getVotingTimeStatus();
+  if (timeStatus.status !== 'open') {
+    return res.status(400).json({ error: 'ไม่อยู่ในช่วงเวลาเปิดลงคะแนนเสียง' });
+  }
+
   if (!line_id) {
     return res.status(400).json({ error: 'กรุณาระบุ line_id' });
   }
@@ -291,9 +331,15 @@ app.get('/api/results', verifyAdminPassword, async (req, res) => {
     const noVotesQuery = 'SELECT COUNT(*) AS no_vote_count FROM votes WHERE candidate_id IS NULL';
     const noVotes = await pool.query(noVotesQuery);
 
-    // 3. ดึงจำนวนผู้มีสิทธิ์เลือกตั้งจากตารางตั้งค่า
-    const settingsRes = await pool.query("SELECT value FROM system_settings WHERE key = 'total_students'");
-    const totalEligible = settingsRes.rows.length > 0 ? parseInt(settingsRes.rows[0].value, 10) : 100;
+    // 3. ดึงจำนวนผู้มีสิทธิ์เลือกตั้งและเวลาโหวตจากตารางตั้งค่า
+    const settingsRes = await pool.query("SELECT key, value FROM system_settings WHERE key IN ('total_students', 'voting_start_time', 'voting_end_time')");
+    const settings = {};
+    settingsRes.rows.forEach(row => {
+      settings[row.key] = row.value;
+    });
+    const totalEligible = parseInt(settings.total_students, 10) || 100;
+    const votingStartTime = settings.voting_start_time || "";
+    const votingEndTime = settings.voting_end_time || "";
 
     // 4. ดึงจำนวนผู้ใช้สิทธิ์จริง
     const votedRes = await pool.query("SELECT COUNT(*) AS total_voted FROM students WHERE has_voted = TRUE");
@@ -310,6 +356,8 @@ app.get('/api/results', verifyAdminPassword, async (req, res) => {
         votes: parseInt(row.vote_count, 10)
       })),
       no_vote_count: parseInt(noVotes.rows[0].no_vote_count, 10),
+      voting_start_time: votingStartTime,
+      voting_end_time: votingEndTime,
       summary: {
         total_eligible: totalEligible,
         total_voted: totalVoted,
@@ -340,6 +388,28 @@ app.post('/api/settings/total-students', verifyAdminPassword, async (req, res) =
   } catch (error) {
     console.error('set total-students error:', error);
     res.status(500).json({ error: 'เกิดข้อผิดพลาดในการบันทึกค่าตั้งค่าระบบ' });
+  }
+});
+
+// 6.6. บันทึกช่วงเวลาเปิด-ปิดโหวต (ตั้งค่าจาก Admin Dashboard) (ป้องกันด้วยรหัสผ่าน)
+app.post('/api/settings/voting-time', verifyAdminPassword, async (req, res) => {
+  const { start_time, end_time } = req.body;
+
+  try {
+    await pool.query(
+      `INSERT INTO system_settings (key, value) VALUES ('voting_start_time', $1) 
+       ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value`,
+      [start_time ? start_time.toString() : ""]
+    );
+    await pool.query(
+      `INSERT INTO system_settings (key, value) VALUES ('voting_end_time', $1) 
+       ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value`,
+      [end_time ? end_time.toString() : ""]
+    );
+    res.json({ success: true, message: 'บันทึกช่วงเวลาลงคะแนนเสียงสำเร็จ' });
+  } catch (error) {
+    console.error('set voting-time error:', error);
+    res.status(500).json({ error: 'เกิดข้อผิดพลาดในการบันทึกเวลาเปิด-ปิดโหวต' });
   }
 });
 
