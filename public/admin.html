@@ -45,6 +45,28 @@
 
 <body class="text-slate-800 antialiased p-6">
 
+    <!-- แผงล็อกอินเข้าหน้าแอดมิน (Password Overlay) -->
+    <div id="admin-login-overlay" class="fixed inset-0 bg-slate-900/95 backdrop-blur-md z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-3xl w-full max-w-sm p-8 shadow-2xl border border-slate-100 text-center">
+            <div class="w-16 h-16 bg-indigo-50 text-indigo-600 rounded-2xl flex items-center justify-center mx-auto mb-5 shadow-md">
+                <i class="fa-solid fa-shield-halved text-3xl"></i>
+            </div>
+            <h2 class="text-xl font-bold text-slate-900 mb-1">ความปลอดภัยแอดมิน</h2>
+            <p class="text-xs text-slate-400 mb-6">กรุณาระบุรหัสผ่านแอดมิน 6 หลักเพื่อปลดล็อกแผงควบคุม</p>
+            
+            <div class="space-y-4">
+                <input type="password" id="admin-password-input" maxlength="6" placeholder="••••••" 
+                       class="w-full text-center px-4 py-3.5 border border-slate-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-indigo-500 font-extrabold tracking-[0.5em] text-lg text-slate-700 bg-slate-50/50">
+                <button onclick="loginAdmin()" 
+                        class="w-full py-3.5 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-2xl text-xs transition duration-200 shadow-lg shadow-indigo-100 flex items-center justify-center space-x-2">
+                    <i class="fa-solid fa-key"></i>
+                    <span>ปลดล็อกแผงควบคุม</span>
+                </button>
+                <div id="login-error-text" class="hidden text-rose-500 text-xs mt-2 font-semibold"></div>
+            </div>
+        </div>
+    </div>
+
     <div class="max-w-6xl mx-auto">
         <!-- Top Navigation / Header -->
         <header
@@ -71,7 +93,12 @@
                 <button onclick="triggerSeedData()"
                     class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs rounded-xl shadow-md transition duration-200 flex items-center space-x-1.5">
                     <i class="fa-solid fa-database"></i>
-                    <span>จำลองระบบและรีเซ็ตข้อมูล (Seed Data)</span>
+                    <span>Seed Data</span>
+                </button>
+                <button onclick="logoutAdmin()"
+                    class="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white font-semibold text-xs rounded-xl shadow-md transition duration-200 flex items-center space-x-1.5">
+                    <i class="fa-solid fa-lock"></i>
+                    <span>ล็อกหน้าจอ</span>
                 </button>
             </div>
         </header>

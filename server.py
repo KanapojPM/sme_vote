@@ -3,7 +3,7 @@ import logging
 from typing import Optional, List, Dict, Any
 from contextlib import contextmanager
 
-from fastapi import FastAPI, HTTPException, status, Query, Depends
+from fastapi import FastAPI, HTTPException, status, Query, Depends, Header
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
@@ -18,6 +18,7 @@ load_dotenv()
 PORT = int(os.getenv("PORT", "3000"))
 DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://postgres:postgres@localhost:5432/sme_vote")
 LIFF_ID = os.getenv("LIFF_ID", "mock-liff-id-12345")
+ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD", "123456")
 
 # ตั้งค่า Logging
 logging.basicConfig(level=logging.INFO)
@@ -104,6 +105,19 @@ class VoteRequest(BaseModel):
 
 class SettingRequest(BaseModel):
     value: int
+
+class LoginRequest(BaseModel):
+    password: str
+
+# ----------------------------------------------------
+# ฟังก์ชันตรวจสอบความปลอดภัยผู้ดูแลระบบ
+# ----------------------------------------------------
+def verify_admin_password(x_admin_password: Optional[str]):
+    if x_admin_password != ADMIN_PASSWORD:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="รหัสผ่านผู้ดูแลระบบไม่ถูกต้อง ไม่มีสิทธิ์เข้าถึงข้อมูล"
+        )
 
 # ----------------------------------------------------
 # API Endpoints
@@ -289,9 +303,10 @@ def cast_vote(req: VoteRequest):
                 "message": "บันทึกคะแนนโหวตเรียบร้อยแล้ว ขอขอบพระคุณที่ใช้สิทธิ์"
             }
 
-# 6. ดึงผลคะแนนรวม Real-time สำหรับระบบแดชบอร์ดแอดมิน
+# 6. ดึงผลคะแนนรวม Real-time สำหรับระบบแดชบอร์ดแอดมิน (ป้องกันด้วยรหัสผ่านผ่าน Header)
 @app.get("/api/results")
-def get_results():
+def get_results(x_admin_password: Optional[str] = Header(None)):
+    verify_admin_password(x_admin_password)
     with get_db_conn() as conn:
         with conn.cursor(cursor_factory=RealDictCursor) as cur:
             # ดึงคะแนนเสียงที่ผู้สมัครแต่ละคนได้รับ
@@ -346,7 +361,8 @@ def get_results():
 
 # 6.5. บันทึกจำนวนผู้มีสิทธิ์เลือกตั้งทั้งหมด (ตั้งค่าจาก Admin Dashboard)
 @app.post("/api/settings/total-students")
-def set_total_students(req: SettingRequest):
+def set_total_students(req: SettingRequest, x_admin_password: Optional[str] = Header(None)):
+    verify_admin_password(x_admin_password)
     if req.value <= 0:
         raise HTTPException(status_code=400, detail="จำนวนผู้มีสิทธิ์เลือกตั้งต้องมากกว่า 0")
         
@@ -361,9 +377,20 @@ def set_total_students(req: SettingRequest):
             
     return {"success": True, "message": "บันทึกจำนวนผู้มีสิทธิ์เลือกตั้งทั้งหมดสำเร็จ"}
 
+# 6.8. API สำหรับตรวจสอบสิทธิ์เข้าใช้งานหน้าแอดมิน (Login)
+@app.post("/api/admin/login")
+def admin_login(req: LoginRequest):
+    if req.password == ADMIN_PASSWORD:
+        return {"success": True, "message": "เข้าสู่ระบบสำเร็จ"}
+    else:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="รหัสผ่านเข้าหน้าแอดมินไม่ถูกต้อง"
+        )
+
 # 7. Endpoint จำลองสิทธิ์นักเรียน 5 คน และผู้สมัคร 3 คน (Seed Data)
 @app.post("/api/seed")
-def seed_data():
+def seed_data(x_admin_password: Optional[str] = Header(None)):
     # ตรวจสอบโครงสร้าง DDL ก่อนทำ
     init_db()
     

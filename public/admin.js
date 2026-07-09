@@ -5,12 +5,28 @@ let turnoutChart = null;
 // ----------------------------------------------------
 // เริ่มต้นการทำงานฝั่ง Admin Dashboard
 // ----------------------------------------------------
-window.onload = async function() {
-    // โหลดข้อมูลครั้งแรก
-    await fetchResults();
+let pollInterval = null;
 
-    // ดึงข้อมูลใหม่โดยอัตโนมัติทุกๆ 5 วินาที (Real-time polling)
-    setInterval(fetchResults, 5000);
+window.onload = async function() {
+    const password = sessionStorage.getItem('adminPassword');
+    if (password) {
+        document.getElementById('admin-login-overlay').classList.add('hidden');
+        await fetchResults();
+        // ดึงข้อมูลใหม่โดยอัตโนมัติทุกๆ 5 วินาที (Real-time polling)
+        pollInterval = setInterval(fetchResults, 5000);
+    } else {
+        document.getElementById('admin-login-overlay').classList.remove('hidden');
+    }
+
+    // เปิดให้กดปุ่ม Enter สำหรับเข้าล็อกอินได้เลย
+    const pwdInput = document.getElementById('admin-password-input');
+    if (pwdInput) {
+        pwdInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                loginAdmin();
+            }
+        });
+    }
 };
 
 // ----------------------------------------------------
@@ -18,7 +34,22 @@ window.onload = async function() {
 // ----------------------------------------------------
 async function fetchResults() {
     try {
-        const response = await fetch('/api/results');
+        const password = sessionStorage.getItem('adminPassword');
+        if (!password) return;
+
+        const response = await fetch('/api/results', {
+            headers: {
+                'x-admin-password': password
+            }
+        });
+
+        if (response.status === 401) {
+            sessionStorage.removeItem('adminPassword');
+            if (pollInterval) clearInterval(pollInterval);
+            document.getElementById('admin-login-overlay').classList.remove('hidden');
+            return;
+        }
+
         if (!response.ok) {
             throw new Error('ไม่สามารถดึงข้อมูลผลการเลือกตั้งได้');
         }
@@ -220,7 +251,13 @@ async function triggerSeedData() {
     }
 
     try {
-        const response = await fetch('/api/seed', { method: 'POST' });
+        const password = sessionStorage.getItem('adminPassword');
+        const response = await fetch('/api/seed', { 
+            method: 'POST',
+            headers: {
+                'x-admin-password': password
+            }
+        });
         const result = await response.json();
 
         if (response.ok && result.success) {
@@ -250,9 +287,13 @@ async function saveTotalStudents() {
     }
 
     try {
+        const password = sessionStorage.getItem('adminPassword');
         const response = await fetch('/api/settings/total-students', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 
+                'Content-Type': 'application/json',
+                'x-admin-password': password
+            },
             body: JSON.stringify({ value: value })
         });
 
@@ -267,4 +308,53 @@ async function saveTotalStudents() {
         console.error('Save settings error:', err);
         alert('❌ ไม่สามารถติดต่อเซิร์ฟเวอร์เพื่อบันทึกการตั้งค่าได้');
     }
+}
+
+// ----------------------------------------------------
+// จัดการล็อกอินและล็อกเอาท์ผู้ดูแลระบบ
+// ----------------------------------------------------
+async function loginAdmin() {
+    const input = document.getElementById('admin-password-input');
+    const errorText = document.getElementById('login-error-text');
+    if (!input || !errorText) return;
+
+    const password = input.value;
+    if (password.length !== 6 || isNaN(password)) {
+        errorText.innerText = 'กรุณากรอกรหัสผ่านเป็นตัวเลข 6 หลัก';
+        errorText.classList.remove('hidden');
+        return;
+    }
+
+    try {
+        const response = await fetch('/api/admin/login', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ password })
+        });
+
+        const data = await response.json();
+        if (response.ok && data.success) {
+            sessionStorage.setItem('adminPassword', password);
+            document.getElementById('admin-login-overlay').classList.add('hidden');
+            errorText.classList.add('hidden');
+            input.value = '';
+            
+            // เริ่มต้นการดึงข้อมูลสถิติใหม่
+            await fetchResults();
+            if (pollInterval) clearInterval(pollInterval);
+            pollInterval = setInterval(fetchResults, 5000);
+        } else {
+            errorText.innerText = data.error || 'รหัสผ่านไม่ถูกต้อง';
+            errorText.classList.remove('hidden');
+        }
+    } catch (err) {
+        console.error('Login request error:', err);
+        errorText.innerText = 'ไม่สามารถติดต่อเซิร์ฟเวอร์ได้';
+        errorText.classList.remove('hidden');
+    }
+}
+
+function logoutAdmin() {
+    sessionStorage.removeItem('adminPassword');
+    window.location.reload();
 }

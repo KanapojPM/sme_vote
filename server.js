@@ -8,6 +8,17 @@ require('dotenv').config();
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || '123456';
+
+// มิดเดิลแวร์ตรวจสอบความถูกต้องรหัสผ่านแอดมิน
+const verifyAdminPassword = (req, res, next) => {
+  const xAdminPassword = req.headers['x-admin-password'];
+  if (xAdminPassword !== ADMIN_PASSWORD) {
+    return res.status(401).json({ error: 'รหัสผ่านผู้ดูแลระบบไม่ถูกต้อง ไม่มีสิทธิ์เข้าถึงข้อมูล' });
+  }
+  next();
+};
+
 // การตั้งค่า Middleware
 app.use(cors());
 app.use(express.json());
@@ -263,8 +274,8 @@ app.post('/api/vote', async (req, res) => {
   }
 });
 
-// 6. ดึงสถิติผลคะแนนรวม (Real-time) สำหรับ Admin Dashboard
-app.get('/api/results', async (req, res) => {
+// 6. ดึงสถิติผลคะแนนรวม (Real-time) สำหรับ Admin Dashboard (ป้องกันด้วยรหัสผ่าน)
+app.get('/api/results', verifyAdminPassword, async (req, res) => {
   try {
     // 1. ดึงคะแนนแยกแต่ละผู้สมัคร
     const candidateVotesQuery = `
@@ -312,8 +323,8 @@ app.get('/api/results', async (req, res) => {
   }
 });
 
-// 6.5. บันทึกจำนวนผู้มีสิทธิ์เลือกตั้งทั้งหมด (ตั้งค่าจาก Admin Dashboard)
-app.post('/api/settings/total-students', async (req, res) => {
+// 6.5. บันทึกจำนวนผู้มีสิทธิ์เลือกตั้งทั้งหมด (ตั้งค่าจาก Admin Dashboard) (ป้องกันด้วยรหัสผ่าน)
+app.post('/api/settings/total-students', verifyAdminPassword, async (req, res) => {
   const { value } = req.body;
   if (value === undefined || parseInt(value, 10) <= 0) {
     return res.status(400).json({ error: 'จำนวนผู้มีสิทธิ์เลือกตั้งต้องมากกว่า 0' });
@@ -332,8 +343,18 @@ app.post('/api/settings/total-students', async (req, res) => {
   }
 });
 
-// 7. API สำหรับ Seed ข้อมูลจำลอง (ผู้สมัคร 3 คน และสิทธิ์นักเรียน 5 คน)
-app.post('/api/seed', async (req, res) => {
+// 6.8. API สำหรับตรวจสอบสิทธิ์เข้าใช้งานหน้าแอดมิน (Login)
+app.post('/api/admin/login', (req, res) => {
+  const { password } = req.body;
+  if (password === ADMIN_PASSWORD) {
+    res.json({ success: true, message: 'เข้าสู่ระบบสำเร็จ' });
+  } else {
+    res.status(401).json({ error: 'รหัสผ่านเข้าหน้าแอดมินไม่ถูกต้อง' });
+  }
+});
+
+// 7. API สำหรับ Seed ข้อมูลจำลอง (ผู้สมัคร 3 คน และสิทธิ์นักเรียน 5 คน) (ป้องกันด้วยรหัสผ่าน)
+app.post('/api/seed', verifyAdminPassword, async (req, res) => {
   try {
     // ตรวจสอบและรัน DDL Schema ก่อน
     await initDatabase();
