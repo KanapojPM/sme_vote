@@ -88,6 +88,12 @@ def init_db():
                 with open(schema_path, 'r', encoding='utf-8') as f:
                     sql_content = f.read()
                     cur.execute(sql_content)
+                # เคลียร์นโยบายจำลองเดิมในตาราง candidates ให้เป็นค่าว่างโดยอัตโนมัติ
+                cur.execute(
+                    "UPDATE candidates SET policy = '' WHERE policy IN ("
+                    "'พรรคเพื่อการพัฒนาโรงเรียนและสร้างความสร้างสรรค์ในหมู่นักเรียน', "
+                    "'กลุ่มนักเรียนรุ่นใหม่ เพื่อวันพรุ่งนี้ที่ดีกว่าสำหรับชาว SME')"
+                )
             db_pool.putconn(conn)
             logger.info("✅ ตรวจสอบและรัน Database Schema เรียบร้อยแล้ว")
     except Exception as e:
@@ -495,8 +501,8 @@ def seed_data(x_admin_password: Optional[str] = Header(None)):
             
             # 1. ใส่ข้อมูลผู้สมัครรับเลือกตั้ง 2 รายชื่อจริง
             candidates = [
-                (1, 'พรรคภูมิใจเทอ', '', 'พรรคเพื่อการพัฒนาโรงเรียนและสร้างความสร้างสรรค์ในหมู่นักเรียน', 'https://smevote.vercel.app/group1.jpg'),
-                (2, 'พรรค MORROW', '', 'กลุ่มนักเรียนรุ่นใหม่ เพื่อวันพรุ่งนี้ที่ดีกว่าสำหรับชาว SME', 'https://smevote.vercel.app/group2.jpg')
+                (1, 'พรรคภูมิใจเทอ', '', '', 'https://smevote.vercel.app/group1.jpg'),
+                (2, 'พรรค MORROW', '', '', 'https://smevote.vercel.app/group2.jpg')
             ]
             
             cur.executemany(

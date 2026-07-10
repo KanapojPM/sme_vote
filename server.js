@@ -67,6 +67,13 @@ async function initDatabase() {
     if (fs.existsSync(schemaPath)) {
       const sql = fs.readFileSync(schemaPath, 'utf8');
       await pool.query(sql);
+      // เคลียร์นโยบายจำลองเดิมในตาราง candidates ให้เป็นค่าว่างโดยอัตโนมัติ
+      await pool.query(
+        `UPDATE candidates SET policy = '' WHERE policy IN (
+          'พรรคเพื่อการพัฒนาโรงเรียนและสร้างความสร้างสรรค์ในหมู่นักเรียน', 
+          'กลุ่มนักเรียนรุ่นใหม่ เพื่อวันพรุ่งนี้ที่ดีกว่าสำหรับชาว SME'
+        )`
+      );
       console.log('✅ ตรวจสอบและสร้างโครงสร้างตาราง (Database Schema) สำเร็จ');
     }
   } catch (error) {
@@ -434,8 +441,8 @@ app.post('/api/seed', verifyAdminPassword, async (req, res) => {
 
     // ใส่ข้อมูลผู้สมัคร (Candidates)
     const seedCandidates = [
-      [1, 'พรรคภูมิใจเทอ', '', 'พรรคเพื่อการพัฒนาโรงเรียนและสร้างความสร้างสรรค์ในหมู่นักเรียน', 'https://smevote.vercel.app/group1.jpg'],
-      [2, 'พรรค MORROW', '', 'กลุ่มนักเรียนรุ่นใหม่ เพื่อวันพรุ่งนี้ที่ดีกว่าสำหรับชาว SME', 'https://smevote.vercel.app/group2.jpg']
+      [1, 'พรรคภูมิใจเทอ', '', '', 'https://smevote.vercel.app/group1.jpg'],
+      [2, 'พรรค MORROW', '', '', 'https://smevote.vercel.app/group2.jpg']
     ];
 
     for (const c of seedCandidates) {

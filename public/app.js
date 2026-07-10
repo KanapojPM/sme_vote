@@ -193,8 +193,14 @@ function renderCandidates() {
                 <!-- Candidate Info -->
                 <div class="w-2/3 p-4 flex flex-col justify-between">
                     <div>
-                        <h3 class="font-bold text-slate-800 leading-tight">เบอร์ ${candidate.candidate_number}: ${candidate.name} ${candidate.surname}</h3>
-                        <p class="text-xs text-slate-500 line-clamp-3 mt-1.5">${candidate.policy}</p>
+                        <h3 class="font-bold text-slate-800 text-base leading-tight mb-1">เบอร์ ${candidate.candidate_number}: ${candidate.name} ${candidate.surname}</h3>
+                        ${candidate.policy && 
+                          candidate.policy.trim() !== '' && 
+                          candidate.policy !== 'พรรคเพื่อการพัฒนาโรงเรียนและสร้างความสร้างสรรค์ในหมู่นักเรียน' && 
+                          candidate.policy !== 'กลุ่มนักเรียนรุ่นใหม่ เพื่อวันพรุ่งนี้ที่ดีกว่าสำหรับชาว SME'
+                          ? `<p class="text-xs text-slate-500 line-clamp-3 mt-1.5">${candidate.policy}</p>`
+                          : ''
+                        }
                     </div>
                     <button onclick="confirmVote(${candidate.id})" class="mt-2 py-1.5 bg-indigo-50 hover:bg-indigo-600 text-indigo-600 hover:text-white font-semibold text-xs rounded-lg transition duration-150 w-full">
                         ลงคะแนนเลือก
@@ -240,7 +246,17 @@ function confirmVote(candidateId) {
         noVoteIcon.classList.add('hidden');
         badge.innerText = `เบอร์ ${candidate.candidate_number}`;
         badge.className = 'inline-block bg-indigo-600 text-white text-xs font-bold px-3 py-1 rounded-full mb-2';
-        policy.innerText = `นโยบาย: "${candidate.policy}"`;
+        
+        if (candidate.policy && 
+            candidate.policy.trim() !== '' && 
+            candidate.policy !== 'พรรคเพื่อการพัฒนาโรงเรียนและสร้างความสร้างสรรค์ในหมู่นักเรียน' && 
+            candidate.policy !== 'กลุ่มนักเรียนรุ่นใหม่ เพื่อวันพรุ่งนี้ที่ดีกว่าสำหรับชาว SME') {
+            policy.innerText = `นโยบาย: "${candidate.policy}"`;
+            policy.classList.remove('hidden');
+        } else {
+            policy.innerText = '';
+            policy.classList.add('hidden');
+        }
 
         submitBtn.onclick = () => submitVote(candidate.id);
     }
