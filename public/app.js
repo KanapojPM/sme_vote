@@ -75,7 +75,7 @@ async function useMockProfile() {
 // ----------------------------------------------------
 function showScreen(screenId) {
     // รายการหน้าจอทั้งหมด
-    const screens = ['screen-loading', 'screen-register', 'screen-voting', 'screen-success'];
+    const screens = ['screen-loading', 'screen-register', 'screen-voting', 'screen-success', 'screen-waiting'];
     screens.forEach(id => {
         const el = document.getElementById(id);
         if (el) el.classList.add('hidden');
