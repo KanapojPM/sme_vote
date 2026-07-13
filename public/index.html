@@ -27,6 +27,14 @@
     <!-- FontAwesome Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
+        @keyframes spin-slow {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+        .animate-spin-slow {
+            animation: spin-slow 8s linear infinite;
+        }
+
         body {
             font-family: 'Kanit', 'Sarabun', sans-serif;
             background: linear-gradient(135deg, #EEF2F6 0%, #E2E8F0 100%);
@@ -104,6 +112,17 @@
                     class="bg-emerald-50 text-emerald-700 px-3 py-1 rounded-full text-xs font-bold flex items-center space-x-1">
                     <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
                     <span>มีสิทธิ์โหวต</span>
+                </div>
+            </div>
+
+            <!-- กล่องนับเวลาถอยหลังแบบเรียลไทม์ -->
+            <div id="voting-timer-container" class="hidden glass-card rounded-2xl p-4 mb-4 flex items-center justify-between shadow-sm border border-indigo-100 bg-indigo-50/30">
+                <div class="flex items-center space-x-2 text-indigo-700">
+                    <i class="fa-solid fa-hourglass-half text-xs animate-spin-slow"></i>
+                    <span class="text-xs font-semibold">เวลาลงคะแนนคงเหลือ:</span>
+                </div>
+                <div id="voting-countdown" class="text-sm font-bold text-indigo-600 font-mono">
+                    --:--
                 </div>
             </div>
 

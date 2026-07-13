@@ -55,6 +55,9 @@ app.use(express.static(path.join(__dirname, 'public')));
 // การเชื่อมต่อฐานข้อมูล PostgreSQL
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
+  max: parseInt(process.env.DB_POOL_MAX || '30', 10),
+  idleTimeoutMillis: 30000,
+  connectionTimeoutMillis: 2000,
   ssl: process.env.DATABASE_URL && process.env.DATABASE_URL.includes('render.com') 
     ? { rejectUnauthorized: false } // ปลดล็อค SSL สำหรับบาง Cloud DB เช่น Render
     : false

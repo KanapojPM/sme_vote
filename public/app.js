@@ -7,6 +7,8 @@ let state = {
     selectedCandidate: null
 };
 
+let countdownInterval = null;
+
 // ----------------------------------------------------
 // ฟังก์ชันเริ่มต้นระบบ (App Initialization)
 // ----------------------------------------------------
@@ -74,6 +76,13 @@ async function useMockProfile() {
 // การเปลี่ยนหน้าจอ (Screen Controllers)
 // ----------------------------------------------------
 function showScreen(screenId) {
+    if (screenId !== 'screen-voting') {
+        if (countdownInterval) {
+            clearInterval(countdownInterval);
+            countdownInterval = null;
+        }
+    }
+
     // รายการหน้าจอทั้งหมด
     const screens = ['screen-loading', 'screen-register', 'screen-voting', 'screen-success', 'screen-waiting'];
     screens.forEach(id => {
@@ -95,6 +104,12 @@ async function checkVoterStatus() {
         const data = await response.json();
 
         if (data.registered) {
+            // ล้างตัวนับถอยหลังอันเดิมก่อน (ถ้ามี)
+            if (countdownInterval) {
+                clearInterval(countdownInterval);
+                countdownInterval = null;
+            }
+
             // ตรวจสอบว่าระบบอยู่ในช่วงเวลาลงคะแนนหรือไม่
             if (data.voting_status && data.voting_status !== 'open') {
                 const formatDate = (isoStr) => {
@@ -133,6 +148,45 @@ async function checkVoterStatus() {
                 document.getElementById('voter-name-title').innerText = `${data.student.name}`;
                 await loadCandidates();
                 showScreen('screen-voting');
+
+                // เริ่มต้นระบบตัวนับถอยหลังแบบเรียลไทม์ หากแอดมินตั้งกำหนดเวลาปิดรับโหวตไว้
+                const timerContainer = document.getElementById('voting-timer-container');
+                const timerDisplay = document.getElementById('voting-countdown');
+                if (timerContainer && timerDisplay) {
+                    if (data.voting_end_time) {
+                        timerContainer.classList.remove('hidden');
+                        const endTime = new Date(data.voting_end_time).getTime();
+                        
+                        const updateTimer = () => {
+                            const now = new Date().getTime();
+                            const distance = endTime - now;
+                            
+                            if (distance < 0) {
+                                clearInterval(countdownInterval);
+                                countdownInterval = null;
+                                timerDisplay.innerText = 'หมดเวลา';
+                                checkVoterStatus(); // ดึงสถานะใหม่เพื่อล็อกและส่งผู้ใช้งานเข้าหน้ารอคอยโดยอัตโนมัติ
+                                return;
+                            }
+                            
+                            const hours = Math.floor(distance / (1000 * 60 * 60));
+                            const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+                            const seconds = Math.floor((distance % (1000 * 60)) / 1000);
+                            
+                            let timeString = '';
+                            if (hours > 0) {
+                                timeString += String(hours).padStart(2, '0') + ':';
+                            }
+                            timeString += String(minutes).padStart(2, '0') + ':' + String(seconds).padStart(2, '0');
+                            timerDisplay.innerText = timeString;
+                        };
+                        
+                        updateTimer();
+                        countdownInterval = setInterval(updateTimer, 1000);
+                    } else {
+                        timerContainer.classList.add('hidden');
+                    }
+                }
             }
         }
     } catch (err) {

@@ -9,7 +9,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 import psycopg2
-from psycopg2.pool import SimpleConnectionPool
+from psycopg2.pool import ThreadedConnectionPool
 from psycopg2.extras import RealDictCursor
 from dotenv import load_dotenv
 
@@ -47,7 +47,7 @@ def startup_event():
 
 # เริ่มต้นระบบ Connection Pool สำหรับ PostgreSQL
 try:
-    db_pool = SimpleConnectionPool(1, 10, dsn=DATABASE_URL)
+    db_pool = ThreadedConnectionPool(1, 30, dsn=DATABASE_URL)
     logger.info("✅ เชื่อมต่อฐานข้อมูลและสร้าง Connection Pool สำเร็จ")
 except Exception as e:
     logger.error(f"❌ ไม่สามารถสร้าง Connection Pool ได้: {e}")
