@@ -31,7 +31,7 @@
     <style>
         body {
             font-family: 'Kanit', 'Sarabun', sans-serif;
-            background: linear-gradient(135deg, #FFFFFF 0%, #F0F9FF 100%);
+            background: linear-gradient(135deg, #F0F9FF 0%, #E0F2FE 100%);
             min-height: 100vh;
         }
 
@@ -70,24 +70,24 @@
     <div class="max-w-6xl mx-auto">
         <!-- Top Navigation / Header -->
         <header
-            class="flex flex-col md:flex-row md:items-center md:justify-between mb-8 pb-6 border-b border-slate-200">
+            class="bg-gradient-to-r from-blue-950 via-blue-900 to-blue-800 text-white rounded-3xl p-6 mb-8 flex flex-col md:flex-row md:items-center md:justify-between shadow-lg shadow-blue-950/20">
             <div class="mb-4 md:mb-0">
-                <div class="flex items-center space-x-3">
+                <div class="flex items-center space-x-4">
                     <div
-                        class="w-12 h-12 bg-blue-600 text-white rounded-2xl flex items-center justify-center shadow-lg shadow-blue-100">
+                        class="w-12 h-12 bg-white/10 text-white rounded-2xl flex items-center justify-center border border-white/20">
                         <i class="fa-solid fa-chart-line text-2xl"></i>
                     </div>
                     <div>
-                        <h1 class="text-xl font-bold text-slate-900">แผงควบคุมผลการเลือกตั้ง Real-time</h1>
-                        <p class="text-slate-500 text-xs mt-0.5">ระบบจัดการและติดตามคะแนนเสียง SME Vote</p>
+                        <h1 class="text-xl font-bold text-white">แผงควบคุมผลการเลือกตั้ง Real-time</h1>
+                        <p class="text-blue-200 text-xs mt-0.5">ระบบจัดการและติดตามคะแนนเสียง SME Vote</p>
                     </div>
                 </div>
             </div>
             <!-- Seeding Controls & Status Badge -->
             <div class="flex flex-wrap items-center gap-3">
                 <div
-                    class="bg-blue-50 text-blue-700 px-3 py-1.5 rounded-xl text-xs font-bold flex items-center space-x-1.5">
-                    <span class="w-2.5 h-2.5 rounded-full bg-blue-600 animate-pulse"></span>
+                    class="bg-white/10 text-blue-100 px-3 py-1.5 rounded-xl text-xs font-bold flex items-center space-x-1.5 border border-white/10">
+                    <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse"></span>
                     <span>ระบบเชื่อมต่อและดึงข้อมูลอัปเดตอัตโนมัติ (5s)</span>
                 </div>
                 <button onclick="triggerSeedData()"
@@ -160,43 +160,43 @@
         <!-- Metrics Row -->
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
             <!-- Metric 1: Total Eligible -->
-            <div class="glass-card rounded-2xl p-5 shadow-sm flex items-center justify-between">
+            <div class="glass-card rounded-2xl p-5 shadow-sm flex items-center justify-between bg-white/80 border border-slate-200/50">
                 <div>
                     <p class="text-xs font-medium text-slate-400">ผู้มีสิทธิ์เลือกตั้งทั้งหมด</p>
                     <h3 id="stat-total-eligible" class="text-2xl font-bold text-slate-800 mt-1">0 คน</h3>
                 </div>
-                <div class="w-12 h-12 bg-blue-50 text-blue-50 rounded-xl flex items-center justify-center text-lg">
-                    <i class="fa-solid fa-users text-blue-500"></i>
+                <div class="w-12 h-12 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center text-lg shadow-sm">
+                    <i class="fa-solid fa-users"></i>
                 </div>
             </div>
             <!-- Metric 2: Total Voted -->
-            <div class="glass-card rounded-2xl p-5 shadow-sm flex items-center justify-between">
+            <div class="glass-card rounded-2xl p-5 shadow-sm flex items-center justify-between bg-white/80 border border-slate-200/50">
                 <div>
                     <p class="text-xs font-medium text-slate-400">ผู้ใช้สิทธิ์ลงคะแนนแล้ว</p>
-                    <h3 id="stat-total-voted" class="text-2xl font-bold text-slate-800 mt-1">0 คน</h3>
+                    <h3 id="stat-total-voted" class="text-2xl font-bold text-slate-800 mt-1 text-emerald-600">0 คน</h3>
                 </div>
                 <div
-                    class="w-12 h-12 bg-emerald-50 text-emerald-500 rounded-xl flex items-center justify-center text-lg">
+                    class="w-12 h-12 bg-emerald-50 text-emerald-600 rounded-xl flex items-center justify-center text-lg shadow-sm">
                     <i class="fa-solid fa-check-double"></i>
                 </div>
             </div>
             <!-- Metric 3: Total Not Voted -->
-            <div class="glass-card rounded-2xl p-5 shadow-sm flex items-center justify-between">
+            <div class="glass-card rounded-2xl p-5 shadow-sm flex items-center justify-between bg-white/80 border border-slate-200/50">
                 <div>
                     <p class="text-xs font-medium text-slate-400">ยังไม่มาใช้สิทธิ์</p>
                     <h3 id="stat-total-not-voted" class="text-2xl font-bold text-slate-800 mt-1">0 คน</h3>
                 </div>
-                <div class="w-12 h-12 bg-amber-50 text-amber-500 rounded-xl flex items-center justify-center text-lg">
+                <div class="w-12 h-12 bg-amber-50 text-amber-500 rounded-xl flex items-center justify-center text-lg shadow-sm">
                     <i class="fa-solid fa-clock-rotate-left"></i>
                 </div>
             </div>
             <!-- Metric 4: Turnout Rate -->
-            <div class="glass-card rounded-2xl p-5 shadow-sm flex items-center justify-between">
+            <div class="bg-gradient-to-br from-blue-600 to-blue-800 rounded-2xl p-5 shadow-lg shadow-blue-500/10 flex items-center justify-between text-white border border-blue-500/20">
                 <div>
-                    <p class="text-xs font-medium text-slate-400">เปอร์เซ็นต์ผู้ใช้สิทธิ์</p>
-                    <h3 id="stat-turnout-rate" class="text-2xl font-bold text-slate-800 mt-1">0.00 %</h3>
+                    <p class="text-xs font-medium text-blue-100">เปอร์เซ็นต์ผู้ใช้สิทธิ์</p>
+                    <h3 id="stat-turnout-rate" class="text-2xl font-bold mt-1">0.00 %</h3>
                 </div>
-                <div class="w-12 h-12 bg-rose-50 text-rose-500 rounded-xl flex items-center justify-center text-lg">
+                <div class="w-12 h-12 bg-white/10 text-white rounded-xl flex items-center justify-center text-lg border border-white/20 shadow-inner">
                     <i class="fa-solid fa-percent"></i>
                 </div>
             </div>
@@ -264,7 +264,14 @@
                     </div>
                 </div>
 
-
+                <!-- SME Logo Card -->
+                <div class="glass-card rounded-2xl p-6 shadow-sm flex flex-col items-center justify-center bg-white border border-slate-200/60">
+                    <img src="sme_logo.png" alt="SME Logo" class="max-w-[180px] h-auto object-contain mb-3 hover:scale-105 transition duration-300">
+                    <div class="text-center">
+                        <h4 class="font-bold text-slate-800 text-sm">SCI MATH ENG</h4>
+                        <p class="text-slate-400 text-[10px] uppercase font-semibold tracking-wider">FOR GIFTED STUDENTS</p>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
