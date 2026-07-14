@@ -31,14 +31,14 @@
     <style>
         body {
             font-family: 'Kanit', 'Sarabun', sans-serif;
-            background: linear-gradient(135deg, #F0F9FF 0%, #E0F2FE 100%);
+            background: linear-gradient(135deg, #050C1A 0%, #0B1933 50%, #11254C 100%);
             min-height: 100vh;
         }
 
         .glass-card {
-            background: rgba(255, 255, 255, 0.9);
+            background: rgba(240, 249, 255, 0.96); /* ฟ้าอ่อนกึ่งโปร่งใสตามโจทย์ */
             backdrop-filter: blur(8px);
-            border: 1px solid rgba(226, 232, 240, 0.8);
+            border: 1px solid rgba(186, 230, 253, 0.7); /* ขอบสีฟ้าอ่อนจางๆ */
         }
     </style>
 </head>
@@ -70,7 +70,7 @@
     <div class="max-w-6xl mx-auto">
         <!-- Top Navigation / Header -->
         <header
-            class="bg-gradient-to-r from-blue-950 via-blue-900 to-blue-800 text-white rounded-3xl p-6 mb-8 flex flex-col md:flex-row md:items-center md:justify-between shadow-lg shadow-blue-950/20">
+            class="bg-gradient-to-r from-blue-950 via-blue-900 to-blue-800 text-white rounded-3xl p-6 mb-8 flex flex-col md:flex-row md:items-center md:justify-between shadow-lg shadow-blue-950/20 border border-white/10">
             <div class="mb-4 md:mb-0">
                 <div class="flex items-center space-x-4">
                     <div
@@ -265,7 +265,7 @@
                 </div>
 
                 <!-- SME Logo Card -->
-                <div class="glass-card rounded-2xl p-6 shadow-sm flex flex-col items-center justify-center bg-white border border-slate-200/60">
+                <div class="glass-card rounded-2xl p-6 shadow-sm flex flex-col items-center justify-center">
                     <img src="sme_logo.png" alt="SME Logo" class="max-w-[180px] h-auto object-contain mb-3 hover:scale-105 transition duration-300">
                     <div class="text-center">
                         <h4 class="font-bold text-slate-800 text-sm">SCI MATH ENG</h4>
