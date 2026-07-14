@@ -329,10 +329,10 @@ app.get('/api/results', verifyAdminPassword, async (req, res) => {
   try {
     // 1. ดึงคะแนนแยกแต่ละผู้สมัคร
     const candidateVotesQuery = `
-      SELECT c.id, c.candidate_number, c.name, c.surname, COUNT(v.id) AS vote_count
+      SELECT c.id, c.candidate_number, c.name, c.surname, c.image_url, COUNT(v.id) AS vote_count
       FROM candidates c
       LEFT JOIN votes v ON c.id = v.candidate_id
-      GROUP BY c.id, c.candidate_number, c.name, c.surname
+      GROUP BY c.id, c.candidate_number, c.name, c.surname, c.image_url
       ORDER BY c.candidate_number ASC
     `;
     const candidateVotes = await pool.query(candidateVotesQuery);
@@ -363,6 +363,7 @@ app.get('/api/results', verifyAdminPassword, async (req, res) => {
         id: row.id,
         candidate_number: row.candidate_number,
         name: `${row.name} ${row.surname}`,
+        image_url: row.image_url,
         votes: parseInt(row.vote_count, 10)
       })),
       no_vote_count: parseInt(noVotes.rows[0].no_vote_count, 10),

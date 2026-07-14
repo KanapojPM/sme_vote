@@ -381,10 +381,10 @@ def get_results(x_admin_password: Optional[str] = Header(None)):
         with conn.cursor(cursor_factory=RealDictCursor) as cur:
             # ดึงคะแนนเสียงที่ผู้สมัครแต่ละคนได้รับ
             cur.execute("""
-                SELECT c.id, c.candidate_number, c.name, c.surname, COUNT(v.id) AS vote_count
+                SELECT c.id, c.candidate_number, c.name, c.surname, c.image_url, COUNT(v.id) AS vote_count
                 FROM candidates c
                 LEFT JOIN votes v ON c.id = v.candidate_id
-                GROUP BY c.id, c.candidate_number, c.name, c.surname
+                GROUP BY c.id, c.candidate_number, c.name, c.surname, c.image_url
                 ORDER BY c.candidate_number ASC
             """)
             candidate_votes = cur.fetchall()
@@ -423,6 +423,7 @@ def get_results(x_admin_password: Optional[str] = Header(None)):
                         "id": row["id"],
                         "candidate_number": row["candidate_number"],
                         "name": f"{row['name']} {row['surname']}",
+                        "image_url": row["image_url"],
                         "votes": row["vote_count"]
                     }
                     for row in candidate_votes

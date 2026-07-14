@@ -2,6 +2,83 @@
 let votesChart = null;
 let turnoutChart = null;
 
+// image cache สำหรับวาดรูปในกราฟ
+const imageCache = {};
+
+function getLoadedImage(url, callback) {
+    if (!url) return null;
+    if (imageCache[url]) {
+        if (imageCache[url].loaded) {
+            return imageCache[url].img;
+        }
+        if (callback && !imageCache[url].callbacks.includes(callback)) {
+            imageCache[url].callbacks.push(callback);
+        }
+        return null;
+    }
+    const img = new Image();
+    imageCache[url] = {
+        img: img,
+        loaded: false,
+        callbacks: callback ? [callback] : []
+    };
+    img.onload = () => {
+        imageCache[url].loaded = true;
+        imageCache[url].callbacks.forEach(cb => cb());
+        imageCache[url].callbacks = [];
+    };
+    img.onerror = () => {
+        imageCache[url].loaded = true;
+        imageCache[url].callbacks = [];
+    };
+    img.src = url;
+    return null;
+}
+
+const barLogoPlugin = {
+    id: 'barLogoPlugin',
+    afterDatasetsDraw(chart) {
+        const { ctx } = chart;
+        const logos = chart.options.plugins.customLogos;
+        if (!logos) return;
+
+        const meta = chart.getDatasetMeta(0);
+        meta.data.forEach((bar, index) => {
+            const logoUrl = logos[index];
+            if (!logoUrl) return;
+
+            const img = getLoadedImage(logoUrl, () => {
+                chart.update('none');
+            });
+
+            if (img) {
+                const size = 32; // Size of the logo circle
+                const xPos = bar.x - size / 2;
+                const yPos = bar.y - size - 8;
+
+                // Draw white background circle with shadow
+                ctx.save();
+                ctx.beginPath();
+                ctx.arc(bar.x, bar.y - size / 2 - 8, size / 2 + 2, 0, Math.PI * 2);
+                ctx.fillStyle = '#ffffff';
+                ctx.shadowColor = 'rgba(0, 0, 0, 0.15)';
+                ctx.shadowBlur = 4;
+                ctx.shadowOffsetY = 2;
+                ctx.fill();
+                ctx.restore();
+
+                // Draw the logo itself (clipped to a circle)
+                ctx.save();
+                ctx.beginPath();
+                ctx.arc(bar.x, bar.y - size / 2 - 8, size / 2, 0, Math.PI * 2);
+                ctx.clip();
+                ctx.drawImage(img, xPos, yPos, size, size);
+                ctx.restore();
+            }
+        });
+    }
+};
+
 // ----------------------------------------------------
 // เริ่มต้นการทำงานฝั่ง Admin Dashboard
 // ----------------------------------------------------
@@ -102,9 +179,13 @@ function updateVotesChart(data) {
     const labels = data.candidates.map(c => `เบอร์ ${c.candidate_number}: ${c.name}`);
     const votes = data.candidates.map(c => c.votes);
 
+    // ดึง URL โลโก้ของผู้สมัครแต่ละเบอร์
+    const imagePaths = data.candidates.map(c => c.image_url || '');
+
     // เพิ่มตัวเลือก "ไม่ประสงค์ลงคะแนน" ลงไปในกราฟ
     labels.push('ไม่ประสงค์ลงคะแนน (No Vote)');
     votes.push(data.no_vote_count);
+    imagePaths.push(''); // No Vote has no logo
 
     const ctx = document.getElementById('chart-votes').getContext('2d');
 
@@ -143,11 +224,13 @@ function updateVotesChart(data) {
                 plugins: {
                     legend: {
                         display: false
-                    }
+                    },
+                    customLogos: imagePaths
                 },
                 scales: {
                     y: {
                         beginAtZero: true,
+                        grace: '18%', // เผื่อพื้นที่ด้านบนสำหรับวาดโลโก้พรรค
                         ticks: {
                             stepSize: 1,
                             font: { family: 'Kanit' }
@@ -165,7 +248,8 @@ function updateVotesChart(data) {
                         }
                     }
                 }
-            }
+            },
+            plugins: [barLogoPlugin]
         });
     } else {
         // อัปเดตข้อมูลกราฟเดิม (เพื่อป้องกันการกระพริบของ UI)
@@ -173,6 +257,7 @@ function updateVotesChart(data) {
         votesChart.data.datasets[0].data = votes;
         votesChart.data.datasets[0].backgroundColor = chartColors.slice(0, votes.length);
         votesChart.data.datasets[0].borderColor = chartBorderColors.slice(0, votes.length);
+        votesChart.options.plugins.customLogos = imagePaths;
         votesChart.update();
     }
 }
@@ -234,7 +319,12 @@ function updateResultsTable(data) {
         tr.className = 'hover:bg-slate-50 transition duration-150';
         tr.innerHTML = `
             <td class="py-3 px-4 font-bold text-indigo-600">เบอร์ ${c.candidate_number}</td>
-            <td class="py-3 px-4 font-medium text-slate-700">${c.name}</td>
+            <td class="py-3 px-4 font-medium text-slate-700">
+                <div class="flex items-center space-x-3">
+                    ${c.image_url ? `<img src="${c.image_url}" class="w-8 h-8 rounded-full object-cover border border-slate-100 shadow-sm">` : '<div class="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-400 text-xs font-bold">?</div>'}
+                    <span>${c.name}</span>
+                </div>
+            </td>
             <td class="py-3 px-4 text-right font-bold text-slate-800">${c.votes}</td>
             <td class="py-3 px-4 text-right text-slate-500 font-semibold">${percentage}%</td>
         `;
