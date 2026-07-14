@@ -190,14 +190,14 @@ function updateVotesChart(data) {
     const ctx = document.getElementById('chart-votes').getContext('2d');
 
     const chartColors = [
-        'rgba(79, 70, 229, 0.75)',  // Indigo
+        'rgba(37, 99, 235, 0.75)',  // Blue
         'rgba(16, 185, 129, 0.75)', // Emerald
         'rgba(245, 158, 11, 0.75)', // Amber
         'rgba(100, 116, 139, 0.6)'  // Slate (No Vote)
     ];
 
     const chartBorderColors = [
-        'rgba(79, 70, 229, 1)',
+        'rgba(37, 99, 235, 1)',
         'rgba(16, 185, 129, 1)',
         'rgba(245, 158, 11, 1)',
         'rgba(100, 116, 139, 1)'
@@ -278,7 +278,7 @@ function updateTurnoutChart(data) {
                 datasets: [{
                     data: [votedVal, notVotedVal],
                     backgroundColor: [
-                        'rgba(79, 70, 229, 0.8)', // Indigo
+                        'rgba(37, 99, 235, 0.8)', // Blue
                         'rgba(226, 232, 240, 0.8)' // Slate light
                     ],
                     borderWidth: 2,
@@ -318,7 +318,7 @@ function updateResultsTable(data) {
         const tr = document.createElement('tr');
         tr.className = 'hover:bg-slate-50 transition duration-150';
         tr.innerHTML = `
-            <td class="py-3 px-4 font-bold text-indigo-600">เบอร์ ${c.candidate_number}</td>
+            <td class="py-3 px-4 font-bold text-blue-600">เบอร์ ${c.candidate_number}</td>
             <td class="py-3 px-4 font-medium text-slate-700">
                 <div class="flex items-center space-x-3">
                     ${c.image_url ? `<img src="${c.image_url}" class="w-8 h-8 rounded-full object-cover border border-slate-100 shadow-sm">` : '<div class="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-400 text-xs font-bold">?</div>'}
