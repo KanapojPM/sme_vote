@@ -482,6 +482,57 @@ app.post('/api/seed', verifyAdminPassword, async (req, res) => {
   }
 });
 
+// 8. API สำหรับเพิ่มโหวตจำลองโดยแอดมิน
+app.post('/api/admin/add-votes', verifyAdminPassword, async (req, res) => {
+  const { candidate_id, count } = req.body;
+  const voteCount = parseInt(count, 10);
+  if (isNaN(voteCount) || voteCount <= 0) {
+    return res.status(400).json({ error: 'จำนวนโหวตต้องมากกว่า 0' });
+  }
+
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+
+    for (let i = 0; i < voteCount; i++) {
+      // 1. ลองหาคนเรียนที่ยังไม่ได้โหวต
+      const findStudent = await client.query(
+        'SELECT student_id FROM students WHERE has_voted = FALSE LIMIT 1'
+      );
+      if (findStudent.rows.length > 0) {
+        // อัปเดตสถานะเป็นโหวตแล้ว
+        await client.query(
+          'UPDATE students SET has_voted = TRUE WHERE student_id = $1',
+          [findStudent.rows[0].student_id]
+        );
+      } else {
+        // ถ้าไม่มีนักเรียนเหลืออยู่ ให้สร้างนักเรียนจำลองขึ้นมาใหม่
+        const mockId = `SIM-${Date.now()}-${Math.floor(Math.random() * 1000000)}`;
+        await client.query(
+          "INSERT INTO students (student_id, name, surname, has_voted) VALUES ($1, 'จำลอง', 'ผู้ใช้สิทธิ์', TRUE)",
+          [mockId]
+        );
+      }
+
+      // 2. บันทึกคะแนนโหวต (ถ้า candidate_id เป็น null หรือ '' ให้โหวตเป็น NULL ใน DB)
+      const candId = (candidate_id === null || candidate_id === '' || candidate_id === undefined) ? null : parseInt(candidate_id, 10);
+      await client.query(
+        'INSERT INTO votes (candidate_id) VALUES ($1)',
+        [candId]
+      );
+    }
+
+    await client.query('COMMIT');
+    res.json({ success: true, message: `เพิ่มคะแนนจำลองจำนวน ${voteCount} เสียงเรียบร้อยแล้ว` });
+  } catch (error) {
+    await client.query('ROLLBACK');
+    console.error('add-votes error:', error);
+    res.status(500).json({ error: 'เกิดข้อผิดพลาดในการเพิ่มคะแนนจำลอง: ' + error.message });
+  } finally {
+    client.release();
+  }
+});
+
 // เริ่มต้นฐานข้อมูลเมื่อเปิดเซิร์ฟเวอร์
 initDatabase();
 

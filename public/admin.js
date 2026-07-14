@@ -166,6 +166,22 @@ async function fetchResults() {
         // 4. อัปเดตตารางสรุปผลคะแนนแบบตัวอักษร
         updateResultsTable(data);
 
+        // 5. อัปเดตรายชื่อผู้สมัครในช่องจำลองการโหวต
+        const select = document.getElementById('sim-candidate-select');
+        if (select && select.children.length === 0) {
+            select.innerHTML = '';
+            data.candidates.forEach(c => {
+                const opt = document.createElement('option');
+                opt.value = c.id;
+                opt.textContent = `เบอร์ ${c.candidate_number}: ${c.name}`;
+                select.appendChild(opt);
+            });
+            const optNo = document.createElement('option');
+            optNo.value = '';
+            optNo.textContent = 'ไม่ประสงค์ลงคะแนน (No Vote)';
+            select.appendChild(optNo);
+        }
+
     } catch (err) {
         console.error('Error fetching results:', err);
     }
@@ -564,5 +580,64 @@ function toDatetimeLocal(isoString) {
     } catch (e) {
         console.error('Error formatting datetime-local:', e);
         return '';
+    }
+}
+
+// ----------------------------------------------------
+// เพิ่มคะแนนเสียงจำลอง
+// ----------------------------------------------------
+async function addSimulatedVotes() {
+    const password = sessionStorage.getItem('adminPassword');
+    if (!password) return;
+
+    const select = document.getElementById('sim-candidate-select');
+    const input = document.getElementById('sim-vote-count');
+    if (!select || !input) return;
+
+    const candidateId = select.value === '' ? null : parseInt(select.value, 10);
+    const count = parseInt(input.value, 10);
+
+    if (isNaN(count) || count <= 0) {
+        alert('กรุณากรอกจำนวนโหวตที่ถูกต้อง (ต้องมากกว่า 0)');
+        return;
+    }
+
+    try {
+        const button = document.querySelector('button[onclick="addSimulatedVotes()"]');
+        if (button) {
+            button.disabled = true;
+            button.innerHTML = '<i class="fa-solid fa-spinner animate-spin"></i> <span>กำลังเพิ่มคะแนน...</span>';
+        }
+
+        const response = await fetch('/api/admin/add-votes', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'x-admin-password': password
+            },
+            body: JSON.stringify({
+                candidate_id: candidateId,
+                count: count
+            })
+        });
+
+        const result = await response.json();
+
+        if (response.ok) {
+            // อัปเดตข้อมูลผลลัพธ์ทันทีหลังจากส่งคะแนน
+            await fetchResults();
+            alert(`✅ ${result.message}`);
+        } else {
+            alert(`❌ ผิดพลาด: ${result.error || 'ไม่สามารถเพิ่มคะแนนเสียงได้'}`);
+        }
+    } catch (err) {
+        console.error('Error adding simulated votes:', err);
+        alert('❌ เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์');
+    } finally {
+        const button = document.querySelector('button[onclick="addSimulatedVotes()"]');
+        if (button) {
+            button.disabled = false;
+            button.innerHTML = '<i class="fa-solid fa-plus"></i> <span>เพิ่มคะแนนโหวตจำลอง</span>';
+        }
     }
 }

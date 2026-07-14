@@ -264,6 +264,30 @@
                     </div>
                 </div>
 
+                <!-- Vote Simulation Card -->
+                <div class="glass-card rounded-2xl p-5 shadow-sm">
+                    <h3 class="font-bold text-slate-800 mb-3 flex items-center space-x-2 text-xs">
+                        <i class="fa-solid fa-square-plus text-blue-500"></i>
+                        <span>จำลองการลงคะแนนเสียง</span>
+                    </h3>
+                    <div class="space-y-3">
+                        <div>
+                            <label class="block text-[10px] font-semibold text-slate-500 mb-1">เลือกตัวเลือกที่ต้องการโหวต</label>
+                            <select id="sim-candidate-select" class="w-full px-3 py-2 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-xs font-semibold text-slate-600 bg-slate-50/50">
+                                <!-- Will be populated dynamically -->
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-[10px] font-semibold text-slate-500 mb-1">จำนวนเสียงที่ต้องการเพิ่ม</label>
+                            <input type="number" id="sim-vote-count" min="1" max="1000" value="20" class="w-full px-3 py-1.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-xs font-semibold text-slate-600 bg-slate-50/50">
+                        </div>
+                        <button onclick="addSimulatedVotes()" class="w-full py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs rounded-xl shadow-sm transition duration-200 flex items-center justify-center space-x-1">
+                            <i class="fa-solid fa-plus"></i>
+                            <span>เพิ่มคะแนนโหวตจำลอง</span>
+                        </button>
+                    </div>
+                </div>
+
                 <!-- SME Logo Card -->
                 <div class="glass-card rounded-2xl p-6 shadow-sm flex flex-col items-center justify-center">
                     <img src="sme_logo.png" alt="SME Logo" class="max-w-[180px] h-auto object-contain mb-3 hover:scale-105 transition duration-300">

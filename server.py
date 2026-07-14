@@ -120,6 +120,10 @@ class VotingTimeRequest(BaseModel):
     start_time: Optional[str] = None
     end_time: Optional[str] = None
 
+class AddVotesRequest(BaseModel):
+    candidate_id: Optional[int] = None
+    count: int
+
 # ----------------------------------------------------
 # ฟังก์ชันตรวจสอบความปลอดภัยผู้ดูแลระบบ
 # ----------------------------------------------------
@@ -531,6 +535,38 @@ def seed_data(x_admin_password: Optional[str] = Header(None)):
                 "success": True,
                 "message": "สร้างตารางและจำลองสิทธิ์นักเรียน 5 คน (65001-65005) และรายชื่อผู้สมัคร 2 คน เรียบร้อยแล้ว!"
             }
+
+# 8. API สำหรับเพิ่มคะแนนจำลองโดยแอดมิน
+@app.post("/api/admin/add-votes")
+def add_votes(req_data: AddVotesRequest, x_admin_password: Optional[str] = Header(None)):
+    verify_admin_password(x_admin_password)
+    
+    if req_data.count <= 0:
+        raise HTTPException(status_code=400, detail="จำนวนโหวตต้องมากกว่า 0")
+        
+    import time
+    import random
+    
+    with get_db_conn() as conn:
+        with conn.cursor() as cur:
+            try:
+                for _ in range(req_data.count):
+                    # 1. ลองหาคนเรียนที่ยังไม่ได้โหวต
+                    cur.execute("SELECT student_id FROM students WHERE has_voted = FALSE LIMIT 1")
+                    student_row = cur.fetchone()
+                    if student_row:
+                        cur.execute("UPDATE students SET has_voted = TRUE WHERE student_id = %s", (student_row[0],))
+                    else:
+                        mock_id = f"SIM-{int(time.time() * 1000)}-{random.randint(10000, 99999)}"
+                        cur.execute("INSERT INTO students (student_id, name, surname, has_voted) VALUES (%s, 'จำลอง', 'ผู้ใช้สิทธิ์', TRUE)", (mock_id,))
+                    
+                    # 2. บันทึกคะแนนโหวต
+                    cur.execute("INSERT INTO votes (candidate_id) VALUES (%s)", (req_data.candidate_id,))
+                conn.commit()
+                return {"success": True, "message": f"เพิ่มคะแนนจำลองจำนวน {req_data.count} เสียงเรียบร้อยแล้ว"}
+            except Exception as e:
+                conn.rollback()
+                raise HTTPException(status_code=500, detail=f"เกิดข้อผิดพลาด: {str(e)}")
 
 # ----------------------------------------------------
 # ให้บริการไฟล์หน้าเว็บ Static (Frontend) จากโฟลเดอร์ public
