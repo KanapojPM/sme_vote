@@ -38,18 +38,27 @@ function getLoadedImage(url, callback) {
 const barLogoPlugin = {
     id: 'barLogoPlugin',
     beforeDraw(chart) {
-        const { scales: { x } } = chart;
+        const x = chart.scales.x;
         if (!x || typeof x.getLabelItems !== 'function') return;
-        const items = x.getLabelItems();
-        const meta = chart.getDatasetMeta(0);
-        items.forEach((item, i) => {
-            const bar = meta.data[i];
-            if (bar) {
-                // บังคับให้ป้ายชื่อ (Label) อยู่ตรงกลางของแท่งกราฟเสมอกันทุก Browser/Safari
-                item.x = bar.x;
-                item.textAlign = 'center';
-            }
-        });
+        
+        // ตรวจสอบว่าเคยทำการ override ฟังก์ชัน getLabelItems ของแกน x ไปแล้วหรือยัง
+        if (!x._originalGetLabelItems) {
+            x._originalGetLabelItems = x.getLabelItems;
+            x.getLabelItems = function() {
+                // เรียกใช้ฟังก์ชันเดิมเพื่อเอาลิสต์ป้ายชื่อออกมา
+                const items = x._originalGetLabelItems.call(this);
+                const meta = chart.getDatasetMeta(0);
+                items.forEach((item, i) => {
+                    const bar = meta.data[i];
+                    if (bar) {
+                        // บังคับเปลี่ยนตำแหน่ง x ให้ตรงกับจุดกึ่งกลางของแท่งคะแนน (Bar/Logo Center) และจัดกึ่งกลาง
+                        item.x = bar.x;
+                        item.textAlign = 'center';
+                    }
+                });
+                return items;
+            };
+        }
     },
     afterDatasetsDraw(chart) {
         const { ctx } = chart;
