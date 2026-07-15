@@ -45,7 +45,7 @@ const barLogoPlugin = {
         const meta = chart.getDatasetMeta(0);
         meta.data.forEach((bar, index) => {
             const logoUrl = logos[index];
-            const size = 30; // ขนาดวงกลมโลโก้
+            const size = 36; // ขนาดวงกลมโลโก้ที่ขยายใหญ่ขึ้นตามคำขอ
             const logoY = chart.chartArea.bottom + 6; // ตำแหน่ง Y ของโลโก้ (อยู่ใต้เส้นแกน X)
 
             // 1. วาดรูปภาพโลโก้หรือไอคอนจำลองที่แกน X ด้านล่าง
@@ -112,7 +112,7 @@ const barLogoPlugin = {
             let labelText = '';
             if (index === 0) labelText = 'เบอร์ 1';
             else if (index === 1) labelText = 'เบอร์ 2';
-            else if (index === 2) labelText = 'ไม่ประสงค์ฯ';
+            else if (index === 2) labelText = 'ไม่ประสงค์ลงคะแนน';
 
             ctx.fillText(labelText, bar.x, logoY + size + 4);
             ctx.restore();
@@ -302,7 +302,7 @@ function updateVotesChart(data) {
                         left: 15,
                         right: 15,
                         top: 5,
-                        bottom: 55 // เผื่อขอบด้านล่างสำหรับโลโก้และป้ายชื่อ Custom
+                        bottom: 70 // เผื่อขอบด้านล่างสำหรับโลโก้ที่ขยายใหญ่ขึ้นและป้ายชื่อเต็มยาว
                     }
                 },
                 plugins: {
