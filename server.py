@@ -19,7 +19,7 @@ load_dotenv()
 PORT = int(os.getenv("PORT", "3000"))
 DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://postgres:postgres@localhost:5432/sme_vote")
 LIFF_ID = os.getenv("LIFF_ID", "mock-liff-id-12345")
-ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD", "123456")
+ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD", "1335555")
 
 # ตั้งค่า Logging
 logging.basicConfig(level=logging.INFO)

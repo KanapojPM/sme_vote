@@ -8,7 +8,7 @@ require('dotenv').config();
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || '123456';
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || '1335555';
 
 // มิดเดิลแวร์ตรวจสอบความถูกต้องรหัสผ่านแอดมิน
 const verifyAdminPassword = (req, res, next) => {
