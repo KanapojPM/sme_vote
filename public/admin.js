@@ -45,7 +45,7 @@ const barLogoPlugin = {
         const meta = chart.getDatasetMeta(0);
         meta.data.forEach((bar, index) => {
             const logoUrl = logos[index];
-            const size = 36; // ขนาดวงกลมโลโก้ที่ขยายใหญ่ขึ้นตามคำขอ
+            const size = 52; // ขนาดวงกลมโลโก้ที่ขยายใหญ่ขึ้นจุใจ (เต็มพื้นที่ด้านล่าง)
             const logoY = chart.chartArea.bottom + 6; // ตำแหน่ง Y ของโลโก้ (อยู่ใต้เส้นแกน X)
 
             // 1. วาดรูปภาพโลโก้หรือไอคอนจำลองที่แกน X ด้านล่าง
@@ -88,7 +88,7 @@ const barLogoPlugin = {
 
                 // วาดกากบาทสีขาว (X) ข้างในวงกลม
                 ctx.strokeStyle = '#ffffff';
-                ctx.lineWidth = 3;
+                ctx.lineWidth = 4; // เพิ่มความหนาของเส้นขึ้นเพื่อความสมดุลกับขนาดวงกลมที่ใหญ่ขึ้น
                 ctx.lineCap = 'round';
                 const offset = size * 0.25;
                 const cx = bar.x;
@@ -302,7 +302,7 @@ function updateVotesChart(data) {
                         left: 15,
                         right: 15,
                         top: 5,
-                        bottom: 70 // เผื่อขอบด้านล่างสำหรับโลโก้ที่ขยายใหญ่ขึ้นและป้ายชื่อเต็มยาว
+                        bottom: 88 // เผื่อขอบด้านล่างสำหรับโลโก้ขนาดใหญ่ยักษ์และป้ายชื่อเต็มยาว
                     }
                 },
                 plugins: {
