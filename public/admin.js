@@ -37,29 +37,6 @@ function getLoadedImage(url, callback) {
 
 const barLogoPlugin = {
     id: 'barLogoPlugin',
-    beforeDraw(chart) {
-        const x = chart.scales.x;
-        if (!x || typeof x.getLabelItems !== 'function') return;
-        
-        // ตรวจสอบว่าเคยทำการ override ฟังก์ชัน getLabelItems ของแกน x ไปแล้วหรือยัง
-        if (!x._originalGetLabelItems) {
-            x._originalGetLabelItems = x.getLabelItems;
-            x.getLabelItems = function() {
-                // เรียกใช้ฟังก์ชันเดิมเพื่อเอาลิสต์ป้ายชื่อออกมา
-                const items = x._originalGetLabelItems.call(this);
-                const meta = chart.getDatasetMeta(0);
-                items.forEach((item, i) => {
-                    const bar = meta.data[i];
-                    if (bar) {
-                        // บังคับเปลี่ยนตำแหน่ง x ให้ตรงกับจุดกึ่งกลางของแท่งคะแนน (Bar/Logo Center) และจัดกึ่งกลาง
-                        item.x = bar.x;
-                        item.textAlign = 'center';
-                    }
-                });
-                return items;
-            };
-        }
-    },
     afterDatasetsDraw(chart) {
         const { ctx } = chart;
         const logos = chart.options.plugins.customLogos;
@@ -67,6 +44,23 @@ const barLogoPlugin = {
 
         const meta = chart.getDatasetMeta(0);
         meta.data.forEach((bar, index) => {
+            // 1. วาดข้อความกำกับแกน X (Custom Axis Labels) ด้วยตนเองเพื่อแก้ปัญหาตัวหนังสือเอียง/เพี้ยนใน Safari/iPad
+            ctx.save();
+            ctx.font = 'bold 11px Kanit, sans-serif';
+            ctx.fillStyle = '#475569'; // slate-600
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'top';
+            
+            let labelText = '';
+            if (index === 0) labelText = 'เบอร์ 1: พรรคภูมิใจเทอ';
+            else if (index === 1) labelText = 'เบอร์ 2: พรรค MORROW';
+            else if (index === 2) labelText = 'ไม่ประสงค์ลงคะแนน';
+            
+            // วาดตัวหนังสือให้ตรงกึ่งกลางพิกัดของแท่งคะแนน (bar.x) เสมอ
+            ctx.fillText(labelText, bar.x, chart.chartArea.bottom + 10);
+            ctx.restore();
+
+            // 2. วาดโลโก้พรรคด้านบนแท่งคะแนน (เฉพาะที่มีโลโก้)
             const logoUrl = logos[index];
             if (!logoUrl) return;
 
@@ -282,7 +276,7 @@ function updateVotesChart(data) {
                         left: 15,
                         right: 15,
                         top: 5,
-                        bottom: 5
+                        bottom: 25 // เผื่อขอบด้านล่างสำหรับวาดป้ายชื่อแบบ Custom
                     }
                 },
                 plugins: {
@@ -305,7 +299,7 @@ function updateVotesChart(data) {
                     },
                     x: {
                         ticks: {
-                            font: { family: 'Kanit, sans-serif', size: 11 }
+                            display: false // ปิดตัวหนังสือแกน X ดั้งเดิมเพื่อแก้ปัญหาเบี้ยวใน Safari/iPad
                         },
                         grid: {
                             display: false
