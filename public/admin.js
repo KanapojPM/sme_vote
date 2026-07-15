@@ -44,52 +44,78 @@ const barLogoPlugin = {
 
         const meta = chart.getDatasetMeta(0);
         meta.data.forEach((bar, index) => {
-            // 1. วาดข้อความกำกับแกน X (Custom Axis Labels) ด้วยตนเองเพื่อแก้ปัญหาตัวหนังสือเอียง/เพี้ยนใน Safari/iPad
-            ctx.save();
-            ctx.font = 'bold 11px Kanit, sans-serif';
-            ctx.fillStyle = '#475569'; // slate-600
-            ctx.textAlign = 'center';
-            ctx.textBaseline = 'top';
-            
-            let labelText = '';
-            if (index === 0) labelText = 'เบอร์ 1: พรรคภูมิใจเทอ';
-            else if (index === 1) labelText = 'เบอร์ 2: พรรค MORROW';
-            else if (index === 2) labelText = 'ไม่ประสงค์ลงคะแนน';
-            
-            // วาดตัวหนังสือให้ตรงกึ่งกลางพิกัดของแท่งคะแนน (bar.x) เสมอ
-            ctx.fillText(labelText, bar.x, chart.chartArea.bottom + 10);
-            ctx.restore();
-
-            // 2. วาดโลโก้พรรคด้านบนแท่งคะแนน (เฉพาะที่มีโลโก้)
             const logoUrl = logos[index];
-            if (!logoUrl) return;
+            const size = 30; // ขนาดวงกลมโลโก้
+            const logoY = chart.chartArea.bottom + 6; // ตำแหน่ง Y ของโลโก้ (อยู่ใต้เส้นแกน X)
 
-            const img = getLoadedImage(logoUrl);
+            // 1. วาดรูปภาพโลโก้หรือไอคอนจำลองที่แกน X ด้านล่าง
+            if (logoUrl) {
+                // กรณีผู้สมัครเบอร์ 1 และ 2 (มีรูปโลโก้พรรค)
+                const img = getLoadedImage(logoUrl);
+                if (img) {
+                    const xPos = bar.x - size / 2;
+                    const yPos = logoY;
 
-            if (img) {
-                const size = 32; // Size of the logo circle
-                const xPos = bar.x - size / 2;
-                const yPos = bar.y - size - 8;
+                    // วาดวงกลมพื้นหลังสีขาวและเงา
+                    ctx.save();
+                    ctx.beginPath();
+                    ctx.arc(bar.x, logoY + size / 2, size / 2 + 2, 0, Math.PI * 2);
+                    ctx.fillStyle = '#ffffff';
+                    ctx.shadowColor = 'rgba(0, 0, 0, 0.15)';
+                    ctx.shadowBlur = 4;
+                    ctx.shadowOffsetY = 2;
+                    ctx.fill();
+                    ctx.restore();
 
-                // Draw white background circle with shadow
+                    // วาดรูปโลโก้ตัดเป็นวงกลม
+                    ctx.save();
+                    ctx.beginPath();
+                    ctx.arc(bar.x, logoY + size / 2, size / 2, 0, Math.PI * 2);
+                    ctx.clip();
+                    ctx.drawImage(img, xPos, yPos, size, size);
+                    ctx.restore();
+                }
+            } else {
+                // กรณี "ไม่ประสงค์ลงคะแนน" (ไม่มีรูปโลโก้) -> วาดไอคอนวงกลมสีเทาพร้อมกากบาทสีขาวสวยงาม
                 ctx.save();
                 ctx.beginPath();
-                ctx.arc(bar.x, bar.y - size / 2 - 8, size / 2 + 2, 0, Math.PI * 2);
-                ctx.fillStyle = '#ffffff';
+                ctx.arc(bar.x, logoY + size / 2, size / 2, 0, Math.PI * 2);
+                ctx.fillStyle = '#94a3b8'; // slate-400
                 ctx.shadowColor = 'rgba(0, 0, 0, 0.15)';
                 ctx.shadowBlur = 4;
                 ctx.shadowOffsetY = 2;
                 ctx.fill();
-                ctx.restore();
 
-                // Draw the logo itself (clipped to a circle)
-                ctx.save();
+                // วาดกากบาทสีขาว (X) ข้างในวงกลม
+                ctx.strokeStyle = '#ffffff';
+                ctx.lineWidth = 3;
+                ctx.lineCap = 'round';
+                const offset = size * 0.25;
+                const cx = bar.x;
+                const cy = logoY + size / 2;
                 ctx.beginPath();
-                ctx.arc(bar.x, bar.y - size / 2 - 8, size / 2, 0, Math.PI * 2);
-                ctx.clip();
-                ctx.drawImage(img, xPos, yPos, size, size);
+                ctx.moveTo(cx - offset, cy - offset);
+                ctx.lineTo(cx + offset, cy + offset);
+                ctx.moveTo(cx + offset, cy - offset);
+                ctx.lineTo(cx - offset, cy + offset);
+                ctx.stroke();
                 ctx.restore();
             }
+
+            // 2. วาดตัวหนังสืออธิบายขนาดเล็กด้านล่างรูปภาพ
+            ctx.save();
+            ctx.font = 'bold 10px Kanit, sans-serif';
+            ctx.fillStyle = '#64748b'; // slate-500
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'top';
+
+            let labelText = '';
+            if (index === 0) labelText = 'เบอร์ 1';
+            else if (index === 1) labelText = 'เบอร์ 2';
+            else if (index === 2) labelText = 'ไม่ประสงค์ฯ';
+
+            ctx.fillText(labelText, bar.x, logoY + size + 4);
+            ctx.restore();
         });
     }
 };
@@ -276,7 +302,7 @@ function updateVotesChart(data) {
                         left: 15,
                         right: 15,
                         top: 5,
-                        bottom: 25 // เผื่อขอบด้านล่างสำหรับวาดป้ายชื่อแบบ Custom
+                        bottom: 55 // เผื่อขอบด้านล่างสำหรับโลโก้และป้ายชื่อ Custom
                     }
                 },
                 plugins: {
