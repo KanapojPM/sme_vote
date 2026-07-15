@@ -116,16 +116,6 @@ const barLogoPlugin = {
 
             ctx.fillText(labelText, bar.x, logoY + size + 4);
             ctx.restore();
-
-            // 3. วาดตัวเลขคะแนนโหวตขนาดใหญ่บนแท่งกราฟ
-            const voteVal = chart.data.datasets[0].data[index];
-            ctx.save();
-            ctx.font = 'bold 20px Kanit, sans-serif'; // ตัวเลขตัวใหญ่สะใจ
-            ctx.fillStyle = '#1e3a8a'; // สีน้ำเงินเข้มหรูหราเข้ากับธีมหลัก
-            ctx.textAlign = 'center';
-            ctx.textBaseline = 'bottom';
-            ctx.fillText(voteVal.toLocaleString('th-TH') + ' โหวต', bar.x, bar.y - 8);
-            ctx.restore();
         });
     }
 };
