@@ -4,7 +4,7 @@ from datetime import datetime, timezone
 from typing import Optional, List, Dict, Any
 from contextlib import contextmanager
 
-from fastapi import FastAPI, HTTPException, status, Query, Depends, Header, Response, Cookie
+from fastapi import FastAPI, HTTPException, status, Query, Depends, Header
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
@@ -318,17 +318,7 @@ def get_candidates():
 
 # 5. ลงคะแนนโหวต (ระบบความปลอดภัยสูงสุด ป้องกัน Double Vote ด้วย DB Transactions และ Row Locking)
 @app.post("/api/vote")
-def cast_vote(
-    req: VoteRequest,
-    response: Response,
-    sme_vote_cooldown: Optional[str] = Cookie(None)
-):
-    if sme_vote_cooldown:
-        raise HTTPException(
-            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
-            detail="ตรวจพบการโหวตจากเครื่องนี้ซ้ำซ้อนภายใน 10 นาที กรุณาเว้นระยะห่างก่อนลงคะแนนในรายถัดไป หรือลงคะแนนจากเครื่องส่วนตัวของตนเอง"
-        )
-
+def cast_vote(req: VoteRequest):
     voting_status, _, _ = get_voting_time_status()
     if voting_status != "open":
         raise HTTPException(
@@ -383,15 +373,6 @@ def cast_vote(
             
             # ยืนยันการเปลี่ยนแปลงข้อมูลแบบ Transaction ปลอดภัยไร้กังวล
             conn.commit()
-            
-            # ตั้งค่า Cookie คูลดาวน์ของอุปกรณ์นี้เป็นเวลา 10 นาที (600 วินาที)
-            response.set_cookie(
-                key="sme_vote_cooldown", 
-                value="active", 
-                max_age=600, 
-                httponly=True, 
-                path="/"
-            )
             
             return {
                 "success": True,
