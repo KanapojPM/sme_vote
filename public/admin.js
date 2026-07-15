@@ -406,17 +406,17 @@ function updateResultsTable(data) {
         const tr = document.createElement('tr');
         tr.className = 'hover:bg-slate-50 transition duration-150';
         tr.innerHTML = `
-            <td class="py-3 px-4 font-bold text-blue-600">เบอร์ ${c.candidate_number}</td>
-            <td class="py-3 px-4 font-medium text-slate-700">
+            <td class="py-3 px-4 font-bold text-blue-600 text-sm">เบอร์ ${c.candidate_number}</td>
+            <td class="py-3 px-4 font-semibold text-slate-800 text-sm">
                 <div class="flex items-center space-x-3">
                     ${c.image_url ? `<img src="${c.image_url}" class="w-8 h-8 rounded-full object-cover border border-slate-100 shadow-sm">` : '<div class="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-400 text-xs font-bold">?</div>'}
                     <span>${c.name}</span>
                 </div>
             </td>
-            <td class="py-3 px-3 text-right font-medium text-slate-600">${onlineVotes}</td>
-            <td class="py-3 px-3 text-right font-medium text-slate-600">${onsiteVotes}</td>
-            <td class="py-3 px-3 text-right font-bold text-slate-800">${totalVotes}</td>
-            <td class="py-3 px-4 text-right text-slate-500 font-semibold">${percentage}%</td>
+            <td class="py-3 px-3 text-right font-semibold text-slate-600 text-base">${onlineVotes}</td>
+            <td class="py-3 px-3 text-right font-semibold text-slate-600 text-base">${onsiteVotes}</td>
+            <td class="py-3 px-3 text-right font-extrabold text-blue-900 text-lg">${totalVotes}</td>
+            <td class="py-3 px-4 text-right text-slate-500 font-bold text-base">${percentage}%</td>
         `;
         tbody.appendChild(tr);
     });
@@ -430,12 +430,12 @@ function updateResultsTable(data) {
     const trNoVote = document.createElement('tr');
     trNoVote.className = 'hover:bg-slate-50 transition duration-150 bg-slate-50/50';
     trNoVote.innerHTML = `
-        <td class="py-3 px-4 font-bold text-slate-500">-</td>
-        <td class="py-3 px-4 text-slate-500 font-medium italic">ไม่ประสงค์ลงคะแนน</td>
-        <td class="py-3 px-3 text-right font-medium text-slate-500">${onlineNoVotes}</td>
-        <td class="py-3 px-3 text-right font-medium text-slate-500">${onsiteNoVotes}</td>
-        <td class="py-3 px-3 text-right font-bold text-slate-600">${totalNoVotes}</td>
-        <td class="py-3 px-4 text-right text-slate-400 font-semibold">${noVotePercentage}%</td>
+        <td class="py-3 px-4 font-bold text-slate-500 text-sm">-</td>
+        <td class="py-3 px-4 text-slate-500 font-semibold italic text-sm">ไม่ประสงค์ลงคะแนน</td>
+        <td class="py-3 px-3 text-right font-semibold text-slate-500 text-base">${onlineNoVotes}</td>
+        <td class="py-3 px-3 text-right font-semibold text-slate-500 text-base">${onsiteNoVotes}</td>
+        <td class="py-3 px-3 text-right font-extrabold text-slate-700 text-lg">${totalNoVotes}</td>
+        <td class="py-3 px-4 text-right text-slate-400 font-bold text-base">${noVotePercentage}%</td>
     `;
     tbody.appendChild(trNoVote);
 }
