@@ -88,6 +88,8 @@ def init_db():
                 with open(schema_path, 'r', encoding='utf-8') as f:
                     sql_content = f.read()
                     cur.execute(sql_content)
+                # เพิ่มคอลัมน์ vote_type ในตาราง votes หากยังไม่มี
+                cur.execute("ALTER TABLE votes ADD COLUMN IF NOT EXISTS vote_type VARCHAR(10) DEFAULT 'online'")
                 # เคลียร์นโยบายจำลองเดิมในตาราง candidates ให้เป็นค่าว่างโดยอัตโนมัติ
                 cur.execute(
                     "UPDATE candidates SET policy = '' WHERE policy IN ("
@@ -383,9 +385,17 @@ def get_results(x_admin_password: Optional[str] = Header(None)):
     verify_admin_password(x_admin_password)
     with get_db_conn() as conn:
         with conn.cursor(cursor_factory=RealDictCursor) as cur:
-            # ดึงคะแนนเสียงที่ผู้สมัครแต่ละคนได้รับ
+            # ดึงคะแนนเสียงที่ผู้สมัครแต่ละคนได้รับ (แยก online, onsite และ รวม)
             cur.execute("""
-                SELECT c.id, c.candidate_number, c.name, c.surname, c.image_url, COUNT(v.id) AS vote_count
+                SELECT 
+                    c.id, 
+                    c.candidate_number, 
+                    c.name, 
+                    c.surname, 
+                    c.image_url, 
+                    COUNT(CASE WHEN v.vote_type = 'online' THEN 1 END) AS online_votes,
+                    COUNT(CASE WHEN v.vote_type = 'onsite' THEN 1 END) AS onsite_votes,
+                    COUNT(v.id) AS total_votes
                 FROM candidates c
                 LEFT JOIN votes v ON c.id = v.candidate_id
                 GROUP BY c.id, c.candidate_number, c.name, c.surname, c.image_url
@@ -393,10 +403,19 @@ def get_results(x_admin_password: Optional[str] = Header(None)):
             """)
             candidate_votes = cur.fetchall()
             
-            # ดึงคะแนนที่ไม่ประสงค์ลงคะแนน
-            cur.execute("SELECT COUNT(*) AS no_vote_count FROM votes WHERE candidate_id IS NULL")
+            # ดึงคะแนนที่ไม่ประสงค์ลงคะแนน (แยก online, onsite และ รวม)
+            cur.execute("""
+                SELECT 
+                    COUNT(CASE WHEN vote_type = 'online' THEN 1 END) AS online_no_votes,
+                    COUNT(CASE WHEN vote_type = 'onsite' THEN 1 END) AS onsite_no_votes,
+                    COUNT(*) AS total_no_votes
+                FROM votes 
+                WHERE candidate_id IS NULL
+            """)
             no_vote = cur.fetchone()
-            no_vote_count = no_vote["no_vote_count"] if no_vote else 0
+            online_no_votes = no_vote["online_no_votes"] if no_vote else 0
+            onsite_no_votes = no_vote["onsite_no_votes"] if no_vote else 0
+            total_no_votes = no_vote["total_no_votes"] if no_vote else 0
             
             # ดึงการตั้งค่าจำนวนนักเรียนทั้งหมดจากตาราง system_settings
             cur.execute("SELECT value FROM system_settings WHERE key = 'total_students'")
@@ -428,11 +447,19 @@ def get_results(x_admin_password: Optional[str] = Header(None)):
                         "candidate_number": row["candidate_number"],
                         "name": f"{row['name']} {row['surname']}",
                         "image_url": row["image_url"],
-                        "votes": row["vote_count"]
+                        "votes": row["total_votes"], # เกื้อหนุนกราฟดั้งเดิม
+                        "online_votes": row["online_votes"],
+                        "onsite_votes": row["onsite_votes"],
+                        "total_votes": row["total_votes"]
                     }
                     for row in candidate_votes
                 ],
-                "no_vote_count": no_vote_count,
+                "no_vote_count": total_no_votes, # เกื้อหนุนกราฟดั้งเดิม
+                "no_votes": {
+                    "online": online_no_votes,
+                    "onsite": onsite_no_votes,
+                    "total": total_no_votes
+                },
                 "voting_start_time": voting_start_time,
                 "voting_end_time": voting_end_time,
                 "summary": {
@@ -561,7 +588,7 @@ def add_votes(req_data: AddVotesRequest, x_admin_password: Optional[str] = Heade
                         cur.execute("INSERT INTO students (student_id, name, surname, has_voted) VALUES (%s, 'จำลอง', 'ผู้ใช้สิทธิ์', TRUE)", (mock_id,))
                     
                     # 2. บันทึกคะแนนโหวต
-                    cur.execute("INSERT INTO votes (candidate_id) VALUES (%s)", (req_data.candidate_id,))
+                    cur.execute("INSERT INTO votes (candidate_id, vote_type) VALUES (%s, 'onsite')", (req_data.candidate_id,))
                 conn.commit()
                 return {"success": True, "message": f"เพิ่มคะแนนจำลองจำนวน {req_data.count} เสียงเรียบร้อยแล้ว"}
             except Exception as e:

@@ -22,6 +22,7 @@ CREATE TABLE IF NOT EXISTS students (
 CREATE TABLE IF NOT EXISTS votes (
     id SERIAL PRIMARY KEY,
     candidate_id INTEGER REFERENCES candidates(id) ON DELETE SET NULL, -- ID ผู้สมัคร (เป็น NULL ได้ กรณี "ไม่ประสงค์ลงคะแนน")
+    vote_type VARCHAR(10) DEFAULT 'online' NOT NULL,                   -- ประเภทการโหวต ('online' หรือ 'onsite')
     voted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL              -- วันเวลาที่ลงคะแนน
 );
 

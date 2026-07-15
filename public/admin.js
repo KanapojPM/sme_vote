@@ -397,7 +397,11 @@ function updateResultsTable(data) {
 
     // 1. เพิ่มผู้สมัครทีละคนในตาราง
     data.candidates.forEach(c => {
-        const percentage = totalVotesCast > 0 ? ((c.votes / totalVotesCast) * 100).toFixed(1) : 0;
+        const totalVotes = c.total_votes !== undefined ? c.total_votes : c.votes;
+        const onlineVotes = c.online_votes !== undefined ? c.online_votes : totalVotes;
+        const onsiteVotes = c.onsite_votes !== undefined ? c.onsite_votes : 0;
+        
+        const percentage = totalVotesCast > 0 ? ((totalVotes / totalVotesCast) * 100).toFixed(1) : 0;
         
         const tr = document.createElement('tr');
         tr.className = 'hover:bg-slate-50 transition duration-150';
@@ -409,20 +413,28 @@ function updateResultsTable(data) {
                     <span>${c.name}</span>
                 </div>
             </td>
-            <td class="py-3 px-4 text-right font-bold text-slate-800">${c.votes}</td>
+            <td class="py-3 px-3 text-right font-medium text-slate-600">${onlineVotes}</td>
+            <td class="py-3 px-3 text-right font-medium text-slate-600">${onsiteVotes}</td>
+            <td class="py-3 px-3 text-right font-bold text-slate-800">${totalVotes}</td>
             <td class="py-3 px-4 text-right text-slate-500 font-semibold">${percentage}%</td>
         `;
         tbody.appendChild(tr);
     });
 
     // 2. เพิ่มแถว "ไม่ประสงค์ลงคะแนน" (No Vote)
-    const noVotePercentage = totalVotesCast > 0 ? ((data.no_vote_count / totalVotesCast) * 100).toFixed(1) : 0;
+    const totalNoVotes = data.no_votes?.total !== undefined ? data.no_votes.total : data.no_vote_count;
+    const onlineNoVotes = data.no_votes?.online !== undefined ? data.no_votes.online : totalNoVotes;
+    const onsiteNoVotes = data.no_votes?.onsite !== undefined ? data.no_votes.onsite : 0;
+    
+    const noVotePercentage = totalVotesCast > 0 ? ((totalNoVotes / totalVotesCast) * 100).toFixed(1) : 0;
     const trNoVote = document.createElement('tr');
     trNoVote.className = 'hover:bg-slate-50 transition duration-150 bg-slate-50/50';
     trNoVote.innerHTML = `
         <td class="py-3 px-4 font-bold text-slate-500">-</td>
         <td class="py-3 px-4 text-slate-500 font-medium italic">ไม่ประสงค์ลงคะแนน</td>
-        <td class="py-3 px-4 text-right font-bold text-slate-500">${data.no_vote_count}</td>
+        <td class="py-3 px-3 text-right font-medium text-slate-500">${onlineNoVotes}</td>
+        <td class="py-3 px-3 text-right font-medium text-slate-500">${onsiteNoVotes}</td>
+        <td class="py-3 px-3 text-right font-bold text-slate-600">${totalNoVotes}</td>
         <td class="py-3 px-4 text-right text-slate-400 font-semibold">${noVotePercentage}%</td>
     `;
     tbody.appendChild(trNoVote);

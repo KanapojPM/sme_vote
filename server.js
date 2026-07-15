@@ -70,6 +70,8 @@ async function initDatabase() {
     if (fs.existsSync(schemaPath)) {
       const sql = fs.readFileSync(schemaPath, 'utf8');
       await pool.query(sql);
+      // เพิ่มคอลัมน์ vote_type ในตาราง votes หากยังไม่มี
+      await pool.query("ALTER TABLE votes ADD COLUMN IF NOT EXISTS vote_type VARCHAR(10) DEFAULT 'online'");
       // เคลียร์นโยบายจำลองเดิมในตาราง candidates ให้เป็นค่าว่างโดยอัตโนมัติ
       await pool.query(
         `UPDATE candidates SET policy = '' WHERE policy IN (
@@ -327,9 +329,17 @@ app.post('/api/vote', async (req, res) => {
 // 6. ดึงสถิติผลคะแนนรวม (Real-time) สำหรับ Admin Dashboard (ป้องกันด้วยรหัสผ่าน)
 app.get('/api/results', verifyAdminPassword, async (req, res) => {
   try {
-    // 1. ดึงคะแนนแยกแต่ละผู้สมัคร
+    // 1. ดึงคะแนนแยกแต่ละผู้สมัคร (แยกโหวต online, onsite และ รวม)
     const candidateVotesQuery = `
-      SELECT c.id, c.candidate_number, c.name, c.surname, c.image_url, COUNT(v.id) AS vote_count
+      SELECT 
+        c.id, 
+        c.candidate_number, 
+        c.name, 
+        c.surname, 
+        c.image_url,
+        COUNT(CASE WHEN v.vote_type = 'online' THEN 1 END) AS online_votes,
+        COUNT(CASE WHEN v.vote_type = 'onsite' THEN 1 END) AS onsite_votes,
+        COUNT(v.id) AS total_votes
       FROM candidates c
       LEFT JOIN votes v ON c.id = v.candidate_id
       GROUP BY c.id, c.candidate_number, c.name, c.surname, c.image_url
@@ -337,8 +347,15 @@ app.get('/api/results', verifyAdminPassword, async (req, res) => {
     `;
     const candidateVotes = await pool.query(candidateVotesQuery);
 
-    // 2. ดึงจำนวนโหวต "ไม่ประสงค์ลงคะแนน" (No Vote)
-    const noVotesQuery = 'SELECT COUNT(*) AS no_vote_count FROM votes WHERE candidate_id IS NULL';
+    // 2. ดึงจำนวนโหวต "ไม่ประสงค์ลงคะแนน" (No Vote) (แยก online, onsite และ รวม)
+    const noVotesQuery = `
+      SELECT 
+        COUNT(CASE WHEN vote_type = 'online' THEN 1 END) AS online_no_votes,
+        COUNT(CASE WHEN vote_type = 'onsite' THEN 1 END) AS onsite_no_votes,
+        COUNT(*) AS total_no_votes
+      FROM votes 
+      WHERE candidate_id IS NULL
+    `;
     const noVotes = await pool.query(noVotesQuery);
 
     // 3. ดึงจำนวนผู้มีสิทธิ์เลือกตั้งและเวลาโหวตจากตารางตั้งค่า
@@ -364,9 +381,17 @@ app.get('/api/results', verifyAdminPassword, async (req, res) => {
         candidate_number: row.candidate_number,
         name: `${row.name} ${row.surname}`,
         image_url: row.image_url,
-        votes: parseInt(row.vote_count, 10)
+        votes: parseInt(row.total_votes, 10), // เกื้อหนุนกราฟแท่งดั้งเดิม
+        online_votes: parseInt(row.online_votes, 10),
+        onsite_votes: parseInt(row.onsite_votes, 10),
+        total_votes: parseInt(row.total_votes, 10)
       })),
-      no_vote_count: parseInt(noVotes.rows[0].no_vote_count, 10),
+      no_vote_count: parseInt(noVotes.rows[0].total_no_votes, 10), // เกื้อหนุนกราฟวงกลมดั้งเดิม
+      no_votes: {
+        online: parseInt(noVotes.rows[0].online_no_votes, 10),
+        onsite: parseInt(noVotes.rows[0].onsite_no_votes, 10),
+        total: parseInt(noVotes.rows[0].total_no_votes, 10)
+      },
       voting_start_time: votingStartTime,
       voting_end_time: votingEndTime,
       summary: {
@@ -517,7 +542,7 @@ app.post('/api/admin/add-votes', verifyAdminPassword, async (req, res) => {
       // 2. บันทึกคะแนนโหวต (ถ้า candidate_id เป็น null หรือ '' ให้โหวตเป็น NULL ใน DB)
       const candId = (candidate_id === null || candidate_id === '' || candidate_id === undefined) ? null : parseInt(candidate_id, 10);
       await client.query(
-        'INSERT INTO votes (candidate_id) VALUES ($1)',
+        "INSERT INTO votes (candidate_id, vote_type) VALUES ($1, 'onsite')",
         [candId]
       );
     }
