@@ -104,7 +104,7 @@ const barLogoPlugin = {
 
             // 2. วาดตัวหนังสืออธิบายขนาดเล็กด้านล่างรูปภาพ
             ctx.save();
-            ctx.font = 'bold 10px Kanit, sans-serif';
+            ctx.font = 'bold 12px Kanit, sans-serif';
             ctx.fillStyle = '#64748b'; // slate-500
             ctx.textAlign = 'center';
             ctx.textBaseline = 'top';
