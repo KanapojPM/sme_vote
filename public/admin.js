@@ -47,9 +47,7 @@ const barLogoPlugin = {
             const logoUrl = logos[index];
             if (!logoUrl) return;
 
-            const img = getLoadedImage(logoUrl, () => {
-                chart.update('none');
-            });
+            const img = getLoadedImage(logoUrl);
 
             if (img) {
                 const size = 32; // Size of the logo circle
@@ -103,6 +101,14 @@ window.onload = async function() {
             if (e.key === 'Enter') {
                 loginAdmin();
             }
+        });
+    }
+
+    // สั่งให้กราฟอัปเดตใหม่เมื่อฟอนต์ทั้งหมดโหลดเสร็จแล้ว ป้องกันปัญหารูปร่างฟอนต์เพี้ยนบน iPad/Safari
+    if (document.fonts) {
+        document.fonts.ready.then(() => {
+            if (votesChart) votesChart.update();
+            if (turnoutChart) turnoutChart.update();
         });
     }
 };
@@ -203,6 +209,17 @@ function updateVotesChart(data) {
     votes.push(data.no_vote_count);
     imagePaths.push(''); // No Vote has no logo
 
+    // สั่งโหลดรูปภาพไว้ก่อนล่วงหน้าเพื่อลดปัญหาการอัปเดตกราฟซ้ำซ้อนใน iOS/Safari
+    imagePaths.forEach(url => {
+        if (url) {
+            getLoadedImage(url, () => {
+                if (votesChart) {
+                    votesChart.update('none');
+                }
+            });
+        }
+    });
+
     const ctx = document.getElementById('chart-votes').getContext('2d');
 
     const chartColors = [
@@ -237,6 +254,14 @@ function updateVotesChart(data) {
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
+                layout: {
+                    padding: {
+                        left: 15,
+                        right: 15,
+                        top: 5,
+                        bottom: 5
+                    }
+                },
                 plugins: {
                     legend: {
                         display: false
@@ -249,7 +274,7 @@ function updateVotesChart(data) {
                         grace: '18%', // เผื่อพื้นที่ด้านบนสำหรับวาดโลโก้พรรค
                         ticks: {
                             stepSize: 1,
-                            font: { family: 'Kanit' }
+                            font: { family: 'Kanit, sans-serif' }
                         },
                         grid: {
                             color: 'rgba(148, 163, 184, 0.1)'
@@ -257,7 +282,7 @@ function updateVotesChart(data) {
                     },
                     x: {
                         ticks: {
-                            font: { family: 'Kanit', size: 11 }
+                            font: { family: 'Kanit, sans-serif', size: 11 }
                         },
                         grid: {
                             display: false
