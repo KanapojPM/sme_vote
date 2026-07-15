@@ -254,6 +254,12 @@ app.post('/api/vote', async (req, res) => {
     return res.status(400).json({ error: 'กรุณาระบุ line_id' });
   }
 
+  // 0. ตรวจสอบคูลดาวน์ป้องกันการใช้เครื่องเดียวกันเปลี่ยนไอดีโหวตซ้ำภายใน 10 นาที
+  const cookies = req.headers.cookie || '';
+  if (cookies.includes('sme_vote_cooldown=')) {
+    return res.status(429).json({ error: 'ตรวจพบการโหวตจากเครื่องนี้ซ้ำซ้อนภายใน 10 นาที กรุณาเว้นระยะห่างก่อนลงคะแนนในรายถัดไป หรือลงคะแนนจากเครื่องส่วนตัวของตนเอง' });
+  }
+
   let client;
   try {
     client = await pool.connect();
@@ -306,6 +312,13 @@ app.post('/api/vote', async (req, res) => {
 
     // บันทึกการเปลี่ยนแปลงทั้งหมด
     await client.query('COMMIT');
+
+    // ตั้งค่า Cookie คูลดาวน์ของอุปกรณ์นี้เป็นเวลา 10 นาที
+    res.cookie('sme_vote_cooldown', 'active', {
+      maxAge: 10 * 60 * 1000, // 10 minutes
+      httpOnly: true,
+      path: '/'
+    });
 
     res.json({
       success: true,

@@ -99,6 +99,26 @@ function showScreen(screenId) {
 // ดึงข้อมูลและตรวจสอบสถานะผู้ใช้ (API Communications)
 // ----------------------------------------------------
 async function checkVoterStatus() {
+    // 0. ตรวจสอบคูลดาวน์ความปลอดภัยของอุปกรณ์ (จำกัด 10 นาที)
+    const lastVoteTime = localStorage.getItem('sme_vote_cooldown');
+    if (lastVoteTime) {
+        const diff = Date.now() - parseInt(lastVoteTime, 10);
+        const cooldownMs = 10 * 60 * 1000; // 10 นาที
+        if (diff < cooldownMs) {
+            const minutesLeft = Math.ceil((cooldownMs - diff) / 60000);
+            document.getElementById('waiting-title').innerText = 'อุปกรณ์นี้อยู่ระหว่างคูลดาวน์โหวต';
+            document.getElementById('waiting-message').innerText = `ระบบตรวจพบว่าเครื่องนี้เพิ่งลงคะแนนเสียงเสร็จสิ้น เพื่อความปลอดภัยกรุณาเว้นระยะห่างในการสลับผู้ใช้งานอย่างน้อย 10 นาที (เหลืออีกประมาณ ${minutesLeft} นาที) หรือใช้เครื่องส่วนตัวของตนเองในการลงคะแนนครับ`;
+            const timeBox = document.getElementById('waiting-time-box');
+            if (timeBox) timeBox.classList.add('hidden');
+            showScreen('screen-waiting');
+            return;
+        }
+    }
+    
+    // ตรวจสอบความพร้อมแสดงกล่องช่วงเวลาปกติ
+    const timeBox = document.getElementById('waiting-time-box');
+    if (timeBox) timeBox.classList.remove('hidden');
+
     try {
         const response = await fetch(`/api/voter-status?line_id=${state.lineUserId}&name=${encodeURIComponent(state.lineDisplayName)}`);
         const data = await response.json();
@@ -341,6 +361,7 @@ async function submitVote(candidateId) {
         const data = await response.json();
 
         if (response.ok && data.success) {
+            localStorage.setItem('sme_vote_cooldown', Date.now().toString());
             showScreen('screen-success');
         } else {
             alert(data.error || 'เกิดข้อผิดพลาดในการบันทึกคะแนน');
