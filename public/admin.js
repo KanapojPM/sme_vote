@@ -517,9 +517,9 @@ async function loginAdmin() {
     const errorText = document.getElementById('login-error-text');
     if (!input || !errorText) return;
 
-    const password = input.value;
-    if (password.length !== 6 || isNaN(password)) {
-        errorText.innerText = 'กรุณากรอกรหัสผ่านเป็นตัวเลข 6 หลัก';
+    const password = input.value.trim();
+    if (password.length === 0 || isNaN(password)) {
+        errorText.innerText = 'กรุณากรอกรหัสผ่านเป็นตัวเลข';
         errorText.classList.remove('hidden');
         return;
     }
