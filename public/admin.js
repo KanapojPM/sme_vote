@@ -37,6 +37,20 @@ function getLoadedImage(url, callback) {
 
 const barLogoPlugin = {
     id: 'barLogoPlugin',
+    beforeDraw(chart) {
+        const { scales: { x } } = chart;
+        if (!x || typeof x.getLabelItems !== 'function') return;
+        const items = x.getLabelItems();
+        const meta = chart.getDatasetMeta(0);
+        items.forEach((item, i) => {
+            const bar = meta.data[i];
+            if (bar) {
+                // บังคับให้ป้ายชื่อ (Label) อยู่ตรงกลางของแท่งกราฟเสมอกันทุก Browser/Safari
+                item.x = bar.x;
+                item.textAlign = 'center';
+            }
+        });
+    },
     afterDatasetsDraw(chart) {
         const { ctx } = chart;
         const logos = chart.options.plugins.customLogos;
