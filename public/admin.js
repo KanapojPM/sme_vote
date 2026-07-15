@@ -45,7 +45,7 @@ const barLogoPlugin = {
         const meta = chart.getDatasetMeta(0);
         meta.data.forEach((bar, index) => {
             const logoUrl = logos[index];
-            const size = 52; // ขนาดวงกลมโลโก้ที่ขยายใหญ่ขึ้นจุใจ (เต็มพื้นที่ด้านล่าง)
+            const size = 65; // ขนาดวงกลมโลโก้ที่ขยายใหญ่ขึ้น 1.25 เท่า (65px)
             const logoY = chart.chartArea.bottom + 6; // ตำแหน่ง Y ของโลโก้ (อยู่ใต้เส้นแกน X)
 
             // 1. วาดรูปภาพโลโก้หรือไอคอนจำลองที่แกน X ด้านล่าง
@@ -104,8 +104,8 @@ const barLogoPlugin = {
 
             // 2. วาดตัวหนังสืออธิบายขนาดเล็กด้านล่างรูปภาพ
             ctx.save();
-            ctx.font = 'bold 12px Kanit, sans-serif';
-            ctx.fillStyle = '#64748b'; // slate-500
+            ctx.font = 'bold 18px Kanit, sans-serif'; // ขยายใหญ่ขึ้น 1.5 เท่า
+            ctx.fillStyle = '#334155'; // สีเข้มเด่นชัด (slate-700)
             ctx.textAlign = 'center';
             ctx.textBaseline = 'top';
 
@@ -302,7 +302,7 @@ function updateVotesChart(data) {
                         left: 15,
                         right: 15,
                         top: 5,
-                        bottom: 88 // เผื่อขอบด้านล่างสำหรับโลโก้ขนาดใหญ่ยักษ์และป้ายชื่อเต็มยาว
+                        bottom: 108 // เผื่อขอบด้านล่างสำหรับโลโก้และฟอนต์ขนาดใหญ่พิเศษ
                     }
                 },
                 plugins: {
@@ -317,7 +317,12 @@ function updateVotesChart(data) {
                         grace: '18%', // เผื่อพื้นที่ด้านบนสำหรับวาดโลโก้พรรค
                         ticks: {
                             stepSize: 1,
-                            font: { family: 'Kanit, sans-serif' }
+                            color: '#0f172a', // สีเข้มคมชัด (slate-900)
+                            font: {
+                                family: 'Kanit, sans-serif',
+                                weight: 'bold', // ปรับตัวหนาเด่นชัดขึ้น
+                                size: 12
+                            }
                         },
                         grid: {
                             color: 'rgba(148, 163, 184, 0.1)'
